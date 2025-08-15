@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Шпаргалка по Markdown — общая таблица, движки и их особенности</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root { --bg:#0f1220; --panel:#151933; --text:#e6e8f0; --muted:#9aa3b2; --accent:#7aa2ff; }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    h1,h2,h3{font-weight:600}
+    h1{font-size:1.4rem;margin:24px 16px}
+    h2{font-size:1.2rem;margin:32px 16px 16px}
+    h3{font-size:1.05rem;margin:20px 16px 10px;color:#dbe2ff}
+    .wrap{max-width:1100px;margin:0 auto;padding:0 16px 48px}
+    table{width:100%;border-collapse:collapse;background:var(--panel);border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.25);margin-bottom:10px}
+    th,td{padding:12px 14px;vertical-align:top;border-bottom:1px solid rgba(255,255,255,.07)}
+    th{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));text-align:left}
+    tr:last-child td{border-bottom:none}
+    code,kbd,samp{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,Monaco,monospace;font-size:.95em;background:rgba(255,255,255,.06);padding:.15em .35em;border-radius:6px}
+    pre{margin:0;background:rgba(255,255,255,.06);padding:10px 12px;border-radius:10px;overflow:auto}
+    .muted{color:var(--muted)}
+    .eg h1,.eg h2,.eg h3,.eg h4,.eg h5,.eg h6{margin:.2em 0}
+    .eg blockquote{margin:0;border-left:3px solid var(--accent);padding-left:10px;color:#d8def0}
+    .nowrap{white-space:nowrap}
+    ul li{margin-bottom:6px}
+    .yes{color:#9f9;font-weight:bold}
+    .no{color:#f99;font-weight:bold}
+    .partial{color:#ff9;font-weight:bold}
+    .card{background:var(--panel);border-radius:14px;padding:14px 16px;box-shadow:0 6px 24px rgba(0,0,0,.25);margin:12px 0}
+    .cols{display:grid;gap:12px}
+    @media(min-width:880px){ .cols{grid-template-columns:1fr 1fr} }
+    .small{font-size:.95em}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0 14px}
+    .select, .checkbox{background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 10px;color:var(--text)}
+    .hint{font-size:.9em}
+    .colHighlight{background:linear-gradient(180deg,rgba(122,162,255,.13),rgba(122,162,255,.06)) !important}
+    .hidden{display:none !important}
+    .legend{display:flex;gap:14px;align-items:center;margin:6px 0 16px}
+    .badge{border-radius:6px;padding:2px 8px;font-weight:700}
+    .b-yes{background:#1f4d1f;color:#b8ffb8}
+    .b-no{background:#4d1f1f;color:#ffbbbb}
+    .b-partial{background:#4d4d1f;color:#fff3b0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- ===== Раздел 1: Общая шпаргалка ===== -->
+    <h1>Шпаргалка по синтаксису Markdown</h1>
+    <table aria-label="Markdown синтаксис и примеры">
+      <thead>
+        <tr>
+          <th style="width:18%">Что</th>
+          <th style="width:42%">Синтаксис (Markdown)</th>
+          <th style="width:40%">Пример результата (рендер)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Заголовки</td><td><code># H1</code><br><code>## H2</code><br><code>###### H6</code></td><td class="eg"><h1>H1</h1><h2>H2</h2><h6>H6</h6></td></tr>
+        <tr><td>Полужирный</td><td><code>**полужирный**</code></td><td><strong>полужирный</strong></td></tr>
+        <tr><td>Курсив</td><td><code>*курсив*</code> или <code>_курсив_</code></td><td><em>курсив</em></td></tr>
+        <tr><td>Жирный+курсив</td><td><code>***сильно***</code></td><td><strong><em>сильно</em></strong></td></tr>
+        <tr><td>Зачёркнутый</td><td><code>~~удалено~~</code></td><td><del>удалено</del></td></tr>
+        <tr><td>Ссылка</td><td><code>[текст](https://example.com)</code></td><td><a href="#">текст</a> <span class="muted">(ссылка)</span></td></tr>
+        <tr><td>Изображение</td><td><code>![alt](https://example.com/img.png)</code></td><td><span class="muted">вставит картинку с alt‑текстом</span></td></tr>
+        <tr><td>Автоссылка</td><td><code>&lt;https://example.com&gt;</code></td><td><a href="#">https://example.com</a></td></tr>
+        <tr><td>Цитата</td><td><code>&gt; Это цитата</code></td><td class="eg"><blockquote>Это цитата</blockquote></td></tr>
+        <tr><td>Нумерованный список</td><td><code>1. один</code><br><code>2. два</code></td><td><ol><li>один</li><li>два</li></ol></td></tr>
+        <tr><td>Маркированный список</td><td><code>- пункт</code> / <code>* пункт</code> / <code>+ пункт</code></td><td><ul><li>пункт</li></ul></td></tr>
+        <tr><td>Вложенные списки</td><td><code>- a<br>&nbsp;&nbsp;- b</code></td><td><ul><li>a<ul><li>b</li></ul></li></ul></td></tr>
+        <tr><td>Чекбоксы</td><td><code>- [ ] todo</code><br><code>- [x] done</code></td><td><ul style="list-style:none;padding-left:0"><li>☐ todo</li><li>☑ done</li></ul></td></tr>
+        <tr><td>Инлайн‑код</td><td><code>`printf("hi")`</code></td><td><code>printf("hi")</code></td></tr>
+        <tr><td>Блок кода</td><td><code>```c</code><br><code>int main(){}</code><br><code>```</code></td><td><pre><code>int main(){}</code></pre></td></tr>
+        <tr><td>Гор. линия</td><td><code>---</code> или <code>***</code></td><td><hr /></td></tr>
+        <tr><td>Таблица</td><td><code>| A | B |<br>|---|---|<br>| x | y |</code></td><td><table><tr><th>A</th><th>B</th></tr><tr><td>x</td><td>y</td></tr></table></td></tr>
+        <tr><td>Выравнивание в таблице</td><td><code>|:--|:--:|--:|<br>лево|центр|право</code></td><td><table><tr><th style="text-align:left">L</th><th style="text-align:center">C</th><th style="text-align:right">R</th></tr><tr><td style="text-align:left">лево</td><td style="text-align:center">центр</td><td style="text-align:right">право</td></tr></table></td></tr>
+        <tr><td>Сноска</td><td><code>Текст[^1] ...<br>[^1]: примечание</code></td><td><span class="muted">будет примечание и якорь</span></td></tr>
+        <tr><td>Экранирование</td><td><code>\*не курсив\*</code></td><td>*не курсив*</td></tr>
+        <tr><td>Перенос строки</td><td><code>Строка␠␠<br>Новая</code> <span class="muted">(две пробела в конце)</span></td><td>Строка<br>Новая</td></tr>
+        <tr><td>Встроенный HTML</td><td><code>H&lt;sub&gt;2&lt;/sub&gt;O</code></td><td>H<sub>2</sub>O</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ===== Раздел 2: Возможности движков (с фильтром) ===== -->
+    <h2>Возможности движков Markdown</h2>
+
+    <div class="controls" role="group" aria-label="Фильтр возможностей">
+      <label class="hint">Движок:
+        <select id="engineSelect" class="select" aria-label="Выбор движка">
+          <option value="all">Все</option>
+          <option value="commonmark">CommonMark</option>
+          <option value="gfm">GFM (GitHub)</option>
+          <option value="extra">Markdown Extra</option>
+          <option value="mmd">MultiMarkdown</option>
+          <option value="pandoc">Pandoc Markdown</option>
+        </select>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" id="hideUnsupported" />
+        Показывать только поддерживаемое выбранным движком
+      </label>
+    </div>
+
+    <div class="legend">
+      <span class="badge b-yes">✔ поддерживается</span>
+      <span class="badge b-partial">△ частично/расширение</span>
+      <span class="badge b-no">✘ нет</span>
+    </div>
+
+    <table id="enginesTable" aria-label="Сравнение движков Markdown">
+      <thead>
+        <tr>
+          <th>Функция</th>
+          <th data-engine="commonmark">CommonMark</th>
+          <th data-engine="gfm">GFM (GitHub)</th>
+          <th data-engine="extra">Markdown Extra</th>
+          <th data-engine="mmd">MultiMarkdown</th>
+          <th data-engine="pandoc">Pandoc Markdown</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Заголовки</td>
+          <td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+        <tr><td>Жирный / курсив</td>
+          <td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+        <tr><td>Зачёркнутый</td>
+          <td class="no">✘</td><td class="yes">✔</td><td class="partial">△</td><td class="partial">△</td><td class="yes">✔</td></tr>
+        <tr><td>Ссылки и изображения</td>
+          <td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+        <tr><td>Автоссылки</td>
+          <td class="yes">✔</td><td class="yes">✔</td><td class="no">✘</td><td class="no">✘</td><td class="yes">✔</td></tr>
+        <tr><td>Таблицы</td>
+          <td class="no">✘</td><td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+        <tr><td>Чекбоксы</td>
+          <td class="no">✘</td><td class="yes">✔</td><td class="no">✘</td><td class="no">✘</td><td class="partial">△</td></tr>
+        <tr><td>Сноски</td>
+          <td class="no">✘</td><td class="no">✘</td><td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+        <tr><td>Встроенный HTML</td>
+          <td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+        <tr><td>LaTeX / Формулы</td>
+          <td class="no">✘</td><td class="no">✘</td><td class="no">✘</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+      </tbody>
+    </table>
+
+    <p class="muted small">Подсветка столбца показывает выбранный движок. Включите опцию выше, чтобы скрыть строки, где выбранный движок не поддерживает функцию.</p>
+
+    <!-- ===== Раздел 3: Где используются эти движки ===== -->
+    <h2>Где используются эти движки</h2>
+    <table aria-label="Платформы и движки">
+      <thead>
+        <tr>
+          <th>Платформа / Инструмент</th>
+          <th>Движок / Диалект</th>
+          <th>Особенности</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>GitHub (README, Issues, PR)</td>
+          <td>GFM (GitHub Flavored Markdown)</td>
+          <td>Таблицы, чекбоксы, автоссылки, зачёркнутый; <code>@user</code>, <code>#issue</code> — платформенные фичи.</td>
+        </tr>
+        <tr>
+          <td>GitLab</td>
+          <td>GFM‑подобный</td>
+          <td>Большинство GFM‑фич; платформенные дополнения (ссылки на задачи, эмодзи).</td>
+        </tr>
+        <tr>
+          <td>VS Code Preview / markdown‑it</td>
+          <td>CommonMark + расширения</td>
+          <td>Таблицы/чекбоксы, подсветка кода; расширяется плагинами.</td>
+        </tr>
+        <tr>
+          <td>Obsidian</td>
+          <td>CommonMark + GFM‑стиль</td>
+          <td>Таблицы, чекбоксы, HTML; wiki‑ссылки <code>[[Страница]]</code> — особенность Obsidian.</td>
+        </tr>
+        <tr>
+          <td>Jupyter / nbconvert</td>
+          <td>CommonMark‑совместимый</td>
+          <td>Формулы через MathJax; доступен HTML.</td>
+        </tr>
+        <tr>
+          <td>Pandoc (CLI)</td>
+          <td>Pandoc Markdown</td>
+          <td>Много расширений: сноски, формулы, атрибуты заголовков/блоков, расширенные таблицы.</td>
+        </tr>
+        <tr>
+          <td>R Markdown / Quarto</td>
+          <td>Pandoc + knitr</td>
+          <td>Код‑чанки <code>```{r}</code>, inline‑код, рендер в PDF/HTML/Word.</td>
+        </tr>
+        <tr>
+          <td>Статические сайты (Hugo, MkDocs, Docusaurus)</td>
+          <td>Чаще CommonMark/GFM</td>
+          <td>Расширяют синтаксис плагинами/шорткодами.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ===== Раздел 4: Мини‑шпаргалки по движкам ===== -->
+    <h2>Шпаргалки по движкам: что добавляют сверх общего</h2>
+
+    <div class="cols">
+      <div class="card engine-card" data-engine-card="commonmark">
+        <h3>CommonMark — нюансы</h3>
+        <ul>
+          <li>Строгие правила для списков/цитат → предсказуемый парсинг.</li>
+          <li>Fenced code <code>```</code>, автоссылки <code>&lt;http://...&gt;</code>.</li>
+          <li>Нет таблиц/чекбоксов/сносок: зависят от реализации.</li>
+        </ul>
+      </div>
+
+      <div class="card engine-card" data-engine-card="gfm">
+        <h3>GFM (GitHub) — добавки</h3>
+        <ul>
+          <li>Чекбоксы задач: <code>- [ ]</code>, <code>- [x]</code>.</li>
+          <li>Таблицы «pipe» и выравнивание: <code>|:--|:--:|--:|</code>.</li>
+          <li>Зачёркнутый <code>~~del~~</code>, автоссылки без &lt;&gt;.</li>
+          <li>Подсветка кода: <code>```python</code>.</li>
+          <li class="muted small">Платформенные: <code>@user</code>, <code>#123</code>, <code>:smile:</code> — рендерятся на GitHub.</li>
+        </ul>
+      </div>
+
+      <div class="card engine-card" data-engine-card="extra">
+        <h3>Markdown Extra — добавки</h3>
+        <ul>
+          <li>Сноски: <code>[^1]</code> … <code>[^1]:</code>.</li>
+          <li>Определённые списки (термин — определение).</li>
+          <li>Идентификаторы заголовков: <code>### Заголовок {#id}</code>.</li>
+          <li>Аббревиатуры: <code>*[HTML]: HyperText Markup Language</code> → <code>HTML</code> получает подсказку.</li>
+        </ul>
+      </div>
+
+      <div class="card engine-card" data-engine-card="mmd">
+        <h3>MultiMarkdown — добавки</h3>
+        <ul>
+          <li>Сноски, таблицы с подписями (caption).</li>
+          <li>Цитирования/библиография, метаданные документа.</li>
+          <li>Формулы (LaTeX), над-/подстрочные через LaTeX.</li>
+        </ul>
+      </div>
+
+      <div class="card engine-card" data-engine-card="pandoc">
+        <h3>Pandoc Markdown — добавки</h3>
+        <ul>
+          <li>Определённые списки:
+            <div><code>Термин</code><br><code>: Определение</code></div>
+          </li>
+          <li>Атрибуты заголовков/блоков: <code>## Заголовок {#id .class}</code>.</li>
+          <li>Fenced divs: <code>::: warning</code> … <code>:::</code>.</li>
+          <li>Сноски, зачёркнутый, расширенные таблицы.</li>
+          <li>Формулы: <code>$E=mc^2$</code>, <code>$$ ... $$</code> (MathJax/LaTeX).</li>
+          <li>Под/надстрочный: <code>H~2~O</code>, <code>X^2^</code>.</li>
+          <li>Атрибуты для кода: <code>```python {#id .class}</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="muted" style="margin-top:6px">Если что‑то не рендерится — проверьте диалект, версию и включённые расширения.</p>
+
+  </div>
+
+  <script>
+    (function(){
+      const engineSelect = document.getElementById('engineSelect');
+      const hideUnsupported = document.getElementById('hideUnsupported');
+      const table = document.getElementById('enginesTable');
+      const headRow = table.tHead.rows[0];
+      const bodyRows = Array.from(table.tBodies[0].rows);
+      const cards = Array.from(document.querySelectorAll('.engine-card'));
+
+      // соответствие value -> индекс столбца (начиная с 1, т.к. 0 — "Функция")
+      const colIndex = {
+        commonmark: 1,
+        gfm: 2,
+        extra: 3,
+        mmd: 4,
+        pandoc: 5
+      };
+
+      function clearHighlights(){
+        Array.from(headRow.cells).forEach(th => th.classList.remove('colHighlight'));
+        bodyRows.forEach(tr => Array.from(tr.cells).forEach(td => td.classList.remove('colHighlight')));
+      }
+
+      function highlightColumn(idx){
+        if (idx == null) return;
+        headRow.cells[idx].classList.add('colHighlight');
+        bodyRows.forEach(tr => tr.cells[idx].classList.add('colHighlight'));
+      }
+
+      function showOnlyCard(engine){
+        cards.forEach(card => {
+          const e = card.getAttribute('data-engine-card');
+          card.classList.toggle('hidden', !(engine === 'all' || e === engine));
+        });
+      }
+
+      function applyFilter(){
+        const engine = engineSelect.value; // 'all' | key in colIndex
+        clearHighlights();
+
+        if (engine === 'all'){
+          // показать все строки
+          bodyRows.forEach(tr => tr.classList.remove('hidden'));
+          showOnlyCard('all');
+          return;
+        }
+
+        const idx = colIndex[engine];
+        highlightColumn(idx);
+
+        const hide = hideUnsupported.checked;
+        bodyRows.forEach(tr => {
+          const cell = tr.cells[idx];
+          const supported = cell.classList.contains('yes') || cell.classList.contains('partial');
+          tr.classList.toggle('hidden', hide && !supported);
+        });
+
+        showOnlyCard(engine);
+      }
+
+      // события
+      engineSelect.addEventListener('change', applyFilter);
+      hideUnsupported.addEventListener('change', applyFilter);
+
+      // init
+      applyFilter();
+    })();
+  </script>
+</body>
+</html>
+

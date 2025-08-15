@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Краткий мануал по написанию хороших GNU Make-файлов</title>
+<style>
+  html { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; line-height: 1.5; }
+  body { margin: 2rem auto; max-width: 1100px; padding: 0 1rem; color: #222; }
+  h1, h2, h3 { line-height: 1.2; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  pre { background: #0b1020; color: #d9e0ff; padding: 1rem; border-radius: .5rem; overflow: auto; }
+  .note { background: #fff3cd; border: 1px solid #ffe08a; padding: .75rem 1rem; border-radius: .5rem; }
+  .ok { background: #e7f7ef; border: 1px solid #aee5cd; padding: .75rem 1rem; border-radius: .5rem; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  th, td { border: 1px solid #ddd; padding: .6rem .7rem; vertical-align: top; }
+  th { background: #f5f7fb; text-align: left; }
+  .small { font-size: .95rem; color: #333; }
+  .muted { color: #666; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 900px) {.two-col {grid-template-columns: 1fr;}}
+</style>
+</head>
+<body>
+
+<h1>Краткий мануал по написанию хороших <code>GNU Make</code>-файлов</h1>
+<p class="muted small">Практичный шпаргалка + образец Makefile для C‑проекта. Сфокусировано на корректной параллельной сборке, генерации зависимостей, структуре целей и удобстве локального/CI запуска.</p>
+
+<h2>Чек‑лист и best practices</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Тема</th>
+      <th>Зачем</th>
+      <th>Как</th>
+      <th>Подводные камни</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Явные переменные</strong></td>
+      <td>Управляемость и переопределение с CLI/CI.</td>
+      <td><code>CC ?= gcc</code>, <code>CFLAGS ?= -O2 -g -Wall</code><br><code>LDFLAGS ?= </code></td>
+      <td><code>=</code> — ленивое, <code>:=</code> — немедленное присваивание. Для путей и флагов чаще удобнее <code>?=</code> + переопределение из окружения.</td>
+    </tr>
+    <tr>
+      <td><strong>Строгие флаги</strong></td>
+      <td>Ранняя диагностика ошибок.</td>
+      <td><code>CFLAGS += -Wall -Wextra -Werror</code></td>
+      <td>На legacy‑коде <code>-Werror</code> может ломать сборку — включайте по профилю (<code>make WERROR=1</code>).</td>
+    </tr>
+    <tr>
+      <td><strong>Вынос артефактов</strong></td>
+      <td>Чистая репа, поддержка параллелизма.</td>
+      <td><code>BUILD ?= build</code><br>Класть <code>.o</code>/<code>.d</code> в <code>$(BUILD)/</code>.</td>
+      <td>Используйте <code>mkdir -p $(@D)</code> или <code>| $(BUILD)</code> (order-only) для создания каталогов.</td>
+    </tr>
+    <tr>
+      <td><strong>Автогенерация зависимостей</strong></td>
+      <td>Правильные пересборки при изменении заголовков.</td>
+      <td><code>CFLAGS += -MMD -MP</code><br><code>-include $(OBJS:.o=.d)</code></td>
+      <td>Не используйте обычное <code>include</code> — при первой сборке файлов ещё нет. Нужен <code>-include</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Pattern rules</strong></td>
+      <td>Одна универсальная команда на все .c→.o.</td>
+      <td><code>$(BUILD)/%.o: %.c | $(BUILD)</code><br><code>\t$(CC) $(CFLAGS) -c $&lt; -o $@</code></td>
+      <td><code>$@</code> — цель, <code>$&lt;</code> — первый prerequisite, <code>$^</code> — все.</td>
+    </tr>
+    <tr>
+      <td><strong>.PHONY</strong></td>
+      <td>Корректный запуск сервисных целей.</td>
+      <td><code>.PHONY: all clean test run coverage</code></td>
+      <td>Иначе совпадение с именем файла в каталоге помешает выполнению рецепта.</td>
+    </tr>
+    <tr>
+      <td><strong>Параллельная сборка</strong></td>
+      <td>Скорость на многоядерных машинах.</td>
+      <td><code>make -j</code> без гонок: независимые цели, без общих временных файлов.</td>
+      <td>Не пишите в один и тот же файл из разных правил; используйте <code>$(@D)</code> для каталогов.</td>
+    </tr>
+    <tr>
+      <td><strong>Order‑only deps</strong></td>
+      <td>Создать каталоги, не влияя на кэш</td>
+      <td><code>$(BUILD)/%.o: %.c | $(BUILD)</code></td>
+      <td>После изменения каталога пересборка не нужна.</td>
+    </tr>
+    <tr>
+      <td><strong>Инклюды</strong></td>
+      <td>Разбиваем проект на модули.</td>
+      <td><code>-include mk/*.mk</code></td>
+      <td>Держите правила и переменные изолированно (например, <code>mk/cc.mk</code>, <code>mk/pkg.mk</code>).</td>
+    </tr>
+    <tr>
+      <td><strong>Кросс‑сборка</strong></td>
+      <td>Один Makefile — разные toolchains.</td>
+      <td><code>CC ?= arm-none-eabi-gcc</code> и профили: <code>make TOOLCHAIN=arm</code></td>
+      <td>Не хардкодьте пути — принимайте их переменными.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Канонический Makefile для C‑проекта</h2>
+<p class="muted small">Поддерживает сборку, очистку, автогенерацию зависимостей, параллелизм, тесты и покрытие.</p>
+<pre>#
+# Makefile (канонический)
+#
+
+# --- настройки по умолчанию ---
+APP       ?= app
+BUILD     ?= build
+CC        ?= gcc
+CFLAGS    ?= -O2 -g -Wall -Wextra -MMD -MP
+LDFLAGS   ?=
+SRC_DIRS  ?= src
+TEST_DIR  ?= tests
+
+# Для покрытия
+ifeq ($(COVERAGE),1)
+  CFLAGS  += --coverage
+  LDFLAGS += --coverage
+endif
+
+# Собираем список исходников/объектов
+SRCS := $(shell find $(SRC_DIRS) -name '*.c')
+OBJS := $(patsubst %.c,$(BUILD)/%.o,$(SRCS))
+
+# Цели по умолчанию
+.PHONY: all clean run test coverage
+all: $(BUILD)/$(APP)
+
+# Исполняемый файл
+$(BUILD)/$(APP): $(OBJS) | $(BUILD)
+	$(CC) $(OBJS) -o $@ $(LDFLAGS)
+
+# Правило компиляции для .c → .o
+$(BUILD)/%.o: %.c | $(BUILD)
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -c $&lt; -o $@
+
+# Каталог сборки (order-only)
+$(BUILD):
+	mkdir -p $(BUILD)
+
+# Тесты (пример: компиляция всего из tests/ в один раннер)
+test: CFLAGS += -DUNIT_TESTING
+test: $(BUILD)/$(APP)_tests
+	./$(BUILD)/$(APP)_tests
+
+TEST_SRCS := $(shell test -d $(TEST_DIR) &amp;&amp; find $(TEST_DIR) -name '*.c' 2>/dev/null)
+TEST_OBJS := $(patsubst %.c,$(BUILD)/%.o,$(TEST_SRCS))
+
+$(BUILD)/$(APP)_tests: $(OBJS) $(TEST_OBJS) | $(BUILD)
+	$(CC) $^ -o $@ $(LDFLAGS)
+
+coverage:
+	$(MAKE) clean
+	$(MAKE) COVERAGE=1 test
+	@echo "Генерируем отчёт lcov/gcovr… (см. README)"
+
+# Уборка
+clean:
+	rm -rf $(BUILD)
+
+# Автоматические зависимости
+-include $(OBJS:.o=.d)
+-include $(TEST_OBJS:.o=.d)
+</pre>
+
+<div class="two-col">
+  <div>
+    <h3>Мини‑памятка по авто‑переменным</h3>
+    <ul>
+      <li><code>$@</code> — имя цели (target)</li>
+      <li><code>$&lt;</code> — первый prerequisite</li>
+      <li><code>$^</code> — все prerequisites без дубликатов</li>
+      <li><code>$(@D)</code> — каталог цели</li>
+      <li><code>$*</code> — stem в pattern rules (без суффикса)</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Полезные спец‑цели</h3>
+    <ul>
+      <li><code>.PHONY</code> — фальшивые цели</li>
+      <li><code>.ONESHELL</code> — один шелл на рецепт</li>
+      <li><code>.DELETE_ON_ERROR</code> — удаляет частично собранные файлы</li>
+      <li><code>.SECONDARY</code> / <code>.PRECIOUS</code> — хранить промежуточные</li>
+    </ul>
+  </div>
+</div>
+
+<h2>Пример: добавляем цель «package»</h2>
+<pre>.PHONY: package
+package: all
+	@mkdir -p dist
+	cp $(BUILD)/$(APP) dist/
+	tar -C dist -czf dist/$(APP).tar.gz $(APP)
+</pre>
+
+<div class="ok small">
+<strong>Совет:</strong> держите recipes идемпотентными и side‑effect free. Всё, что создаёт каталоги или пишет файлы, должно быть привязано к целям и зависимостям, а не выполняться «просто так».
+</div>
+
+<h2>Интеграция с отчётами покрытия</h2>
+<p>Скомпилируйте с <code>COVERAGE=1</code>, выполните тесты и постройте отчёт:</p>
+<pre># lcov + genhtml
+lcov --capture --directory build --output-file coverage.info
+genhtml coverage.info --output-directory coverage-html
+
+# или gcovr (HTML + JUnit):
+gcovr -r . --html --html-details -o coverage.html
+</pre>
+
+<p class="muted small">Сделано как основа: правьте блоки <code>SRC_DIRS</code>/<code>TEST_DIR</code>, добавляйте модульные <code>mk/*.mk</code>, выносите компоновку для MCU/PC профилей.</p>
+
+</body>
+</html>
