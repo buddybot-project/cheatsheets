@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>gcov + gcovr — мини‑cookbook</title>
+  <style>
+    :root{
+      --bg:#0f1320; --text:#e6e9ef; --muted:#9aa4b2; --card:#171a2b; --accent:#6ee7ff; --accent-2:#a78bfa;
+      --border:#232840; --kbd:#10131f; --green:#2dd4bf; --red:#f87171; --yellow:#facc15;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    a{color:var(--accent)} a:hover{color:#bff4ff}
+    .wrap{display:grid;grid-template-columns: 300px 1fr;min-height:100vh}
+    aside{border-right:1px solid var(--border);background:linear-gradient(180deg,#0e1221,#0a0d19)}
+    main{padding:24px 24px 80px}
+    .brand{padding:20px;border-bottom:1px solid var(--border)}
+    .brand h1{margin:0;font-size:18px;letter-spacing:.2px}
+    .brand small{color:var(--muted)}
+    .nav{padding:12px 6px 18px;position:sticky;top:0;max-height:calc(100vh - 70px);overflow:auto}
+    .nav a{display:block;padding:8px 12px;border-radius:10px;color:var(--text);text-decoration:none}
+    .nav a:hover{background:rgba(255,255,255,.04)}
+    .badge{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:12px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin:14px 0}
+    h2{margin:28px 0 8px}
+    h3{margin:22px 0 8px}
+    .grid{display:grid;gap:14px}
+    .grid.cols-2{grid-template-columns: 1fr 1fr}
+    @media (max-width: 920px){ .wrap{grid-template-columns:1fr} aside{position:sticky;top:0;z-index:10} }
+    pre{margin:10px 0;background:#0b0f1a;border:1px solid var(--border);border-radius:14px;overflow:auto}
+    pre code{display:block;padding:14px 16px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:13px}
+    .codebar{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:6px 10px;border:1px solid var(--border);border-bottom:none;border-radius:14px 14px 0 0;background:#0d1220}
+    .codebar .title{font:600 12px/1.2 ui-monospace,monospace;color:var(--muted)}
+    .btn{appearance:none;border:1px solid var(--border);background:#0f1527;color:var(--text);padding:6px 10px;border-radius:10px;cursor:pointer;font-size:12px}
+    .btn:hover{background:#141b31}
+    .tip{border-left:3px solid var(--green);padding:10px 12px;background:#0c1414;border-radius:10px}
+    .warn{border-left:3px solid var(--yellow);padding:10px 12px;background:#141208;border-radius:10px}
+    .err{border-left:3px solid var(--red);padding:10px 12px;background:#1a0b0b;border-radius:10px}
+    table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;font-size:14px}
+    th{background:#12162a;text-align:left}
+    tr:last-child td{border-bottom:none}
+    .hl{color:var(--accent-2)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside>
+      <div class="brand">
+        <h1>gcov + gcovr — мини‑cookbook</h1>
+        <small>Инструменты для измерения покрытия кода в C/С++ проектах (GCC).</small>
+      </div>
+      <nav class="nav" id="toc">
+        <a href="#quickstart">Быстрый старт</a>
+        <a href="#gcov">gcov</a>
+        <a href="#gcovr">gcovr</a>
+        <a href="#html">HTML и JUnit отчёты</a>
+        <a href="#integration">Интеграция с Ceedling</a>
+        <a href="#patterns">Рецепты</a>
+        <a href="#troubleshooting">Ошибки и тонкости</a>
+        <a href="#links">Полезные ссылки</a>
+      </nav>
+    </aside>
+    <main>
+      <section class="card" id="quickstart">
+        <h2>Быстрый старт</h2>
+        <ol>
+          <li>Соберите проект с флагами покрытия: <code>-fprofile-arcs -ftest-coverage</code> или <code>--coverage</code>.</li>
+          <li>Запустите тесты — создадутся <code>.gcda</code>/<code>.gcno</code> файлы.</li>
+          <li>Используйте <code>gcov</code> или <code>gcovr</code> для анализа.</li>
+        </ol>
+        <div class="tip">На встраиваемых системах часто выполняют код на хосте для сбора покрытия, либо используют симулятор.</div>
+      </section>
+
+      <section class="card" id="gcov">
+        <h2>gcov</h2>
+        <pre><code># Компиляция с покрытием
+cc --coverage -o main main.c
+./main
+
+# Анализ покрытия для файла main.c
+gcov main.c
+
+# Результат: main.c.gcov с пометками выполненных строк
+</code></pre>
+        <p>Плюсы: стандартный инструмент GCC. Минусы: менее удобен для автоматизации.</p>
+      </section>
+
+      <section class="card" id="gcovr">
+        <h2>gcovr</h2>
+        <p>Python‑утилита, оборачивающая gcov и создающая красивые отчёты.</p>
+        <pre><code># Установка
+pip install gcovr
+
+# Текстовый отчёт
+gcovr -r .
+
+# HTML отчёт
+gcovr -r . --html --html-details -o coverage.html
+
+# JUnit XML
+gcovr -r . --xml-pretty -o coverage.xml
+</code></pre>
+        <p>Ключ <code>-r</code> указывает корень исходников для относительных путей.</p>
+      </section>
+
+      <section class="card" id="html">
+        <h2>HTML и JUnit отчёты</h2>
+        <ul>
+          <li><strong>HTML</strong> — для визуального анализа в браузере (<code>--html --html-details</code>).</li>
+          <li><strong>XML/JUnit</strong> — для интеграции с CI/CD (<code>--xml</code>, <code>--xml-pretty</code>).</li>
+          <li>В CI можно сохранить их как артефакты.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="integration">
+        <h2>Интеграция с Ceedling</h2>
+        <p>В <code>project.yml</code>:</p>
+        <pre><code>:plugins:
+  :enabled:
+    - gcov
+    - gcovr
+
+:gcov:
+  :html_report: TRUE
+  :html_report_type: detailed
+  :xml_report: TRUE
+</code></pre>
+        <p>Запуск: <code>ceedling gcov:all</code>.</p>
+      </section>
+
+      <section class="card" id="patterns">
+        <h2>Рецепты</h2>
+        <ul>
+          <li>Исключить директории из покрытия: <code>--exclude 'tests/*'</code>.</li>
+          <li>Запуск только для изменённых файлов в CI: сравнить git diff и отфильтровать список.</li>
+          <li>Для многопоточности используйте <code>gcovr --gcov-executable 'gcov -p -b'</code> для более точной статистики.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="troubleshooting">
+        <h2>Ошибки и тонкости</h2>
+        <ul>
+          <li>Покрытие учитывает только код, выполненный в тестах.</li>
+          <li>Не забывайте чистить <code>.gcda</code>/<code>.gcno</code> перед перезапуском тестов для точных данных.</li>
+          <li>При кросс‑сборке для MCU нужно запускать бинарь на хосте или в симуляторе для сбора покрытия.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="links">
+        <h2>Полезные ссылки</h2>
+        <ul>
+          <li>gcov документация GCC: <a href="https://gcc.gnu.org/onlinedocs/gcc/Gcov.html" target="_blank" rel="noopener">gcc.gnu.org/onlinedocs/gcc/Gcov.html</a></li>
+          <li>gcovr GitHub: <a href="https://github.com/gcovr/gcovr" target="_blank" rel="noopener">github.com/gcovr/gcovr</a></li>
+          <li>gcovr docs: <a href="https://gcovr.com/en/stable/" target="_blank" rel="noopener">gcovr.com</a></li>
+        </ul>
+      </section>
+    </main>
+  </div>
+  <script>
+    document.querySelectorAll('[data-copy]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const target = document.querySelector(btn.getAttribute('data-copy'));
+        if(!target) return;
+        const text = target.textContent;
+        navigator.clipboard.writeText(text).then(()=>{
+          const old = btn.textContent; btn.textContent='скопировано';
+          setTimeout(()=>btn.textContent=old,1000);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
+
