@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Doxygen Cookbook — шпаргалка</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#0f151c; --muted:#8aa0b8; --text:#e7eef7;
+    --accent:#4ea1ff; --accent-2:#6ee7b7; --border:#1c2430; --code-bg:#0a1118;
+    --tag-bg:#112233;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji";
+  }
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid; grid-template-columns: 300px 1fr; min-height:100vh}
+  nav{
+    border-right:1px solid var(--border); background:var(--panel); padding:18px; position:sticky; top:0; height:100vh; overflow:auto;
+  }
+  nav h1{font-size:18px; margin:0 0 10px 0}
+  .search{
+    display:flex; gap:8px; margin:10px 0 14px 0;
+  }
+  .search input{
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border);
+    background:#0b1118; color:var(--text); outline:none;
+  }
+  .toc a{
+    display:block; padding:8px 10px; border-radius:8px; color:var(--text);
+  }
+  .toc a:hover{background:#0b121a}
+  .toc .group{margin:10px 0}
+  .toc .group-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:12px 8px 6px}
+  main{padding:28px; max-width:1100px}
+  .section{
+    background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin:14px 0;
+  }
+  .section h2{margin:0 0 10px 0; font-size:22px}
+  .section h3{margin:18px 0 8px; font-size:18px}
+  .grid{display:grid; gap:14px}
+  @media (min-width:920px){ .grid.cols-2{grid-template-columns:1fr 1fr} .grid.cols-3{grid-template-columns:repeat(3,1fr)} }
+  code, pre{font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  pre{
+    background:var(--code-bg); border:1px solid var(--border); border-radius:12px; padding:14px; overflow:auto; position:relative;
+  }
+  .copy{
+    position:absolute; top:8px; right:8px; font-size:12px; border:1px solid var(--border);
+    background:#0f1a24; color:var(--text); border-radius:8px; padding:6px 8px; cursor:pointer;
+  }
+  .kbd{background:#111c27; border:1px solid var(--border); padding:2px 6px; border-radius:6px; font-family:inherit}
+  .tag{display:inline-block; font-size:12px; background:#112233; border:1px solid var(--border);
+       padding:2px 6px; border-radius:999px; color:var(--muted); margin-right:6px}
+  .note, .warn, .tip {
+    border-left:4px solid; padding:10px 12px; border-radius:10px; background:#0b121b; margin:10px 0;
+  }
+  .note{border-color:#4ea1ff}
+  .warn{border-color:#ffb84e}
+  .tip {border-color:#6ee7b7}
+  table{border-collapse:collapse; width:100%; background:#0a1118; border:1px solid var(--border); border-radius:12px; overflow:hidden}
+  th, td{border-bottom:1px solid var(--border); padding:10px 12px; text-align:left}
+  th{background:#0c131a; color:#cfe1ff}
+  tr:last-child td{border-bottom:none}
+  .pill{display:inline-block; padding:2px 8px; border-radius:999px; background:#0f1b28; border:1px solid var(--border); font-size:12px; color:var(--muted)}
+  footer{color:var(--muted); margin:30px 0 10px}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav>
+    <h1>📚 Doxygen Cookbook</h1>
+    <div class="search">
+      <input id="q" type="search" placeholder="Фильтр по разделам (например, 'graphviz', 'alias')…" />
+    </div>
+    <div class="toc" id="toc">
+      <div class="group">
+        <div class="group-title">Основы</div>
+        <a href="#quickstart">Быстрый старт</a>
+        <a href="#comments">Комментарии и теги</a>
+        <a href="#pages">Страницы и разделы</a>
+        <a href="#groups">Группы и модули</a>
+        <a href="#markdown">Markdown</a>
+      </div>
+      <div class="group">
+        <div class="group-title">Диаграммы и медиа</div>
+        <a href="#graphs">Graphviz/PlantUML</a>
+        <a href="#images">Изображения и таблицы</a>
+      </div>
+      <div class="group">
+        <div class="group-title">Конфигурация</div>
+        <a href="#doxyfile-keys">Doxyfile — ключевые опции</a>
+        <a href="#doxyfile-templates">Шаблоны Doxyfile</a>
+        <a href="#aliases">ALIASES и PREDEFINED</a>
+        <a href="#exclude">Фильтры и исключения</a>
+        <a href="#style">Кастомизация HTML</a>
+      </div>
+      <div class="group">
+        <div class="group-title">Языки и интеграции</div>
+        <a href="#langs">Примеры для C/C++/Python/Java</a>
+        <a href="#xref">Кросс-ссылки и цитаты</a>
+        <a href="#ci">CI/Сборка</a>
+      </div>
+      <div class="group">
+        <div class="group-title">Качество и помощь</div>
+        <a href="#warnings">Контроль качества</a>
+        <a href="#troubleshoot">Траблшутинг</a>
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <span class="pill">Offline-friendly</span>
+      <span class="pill">Doxygen 1.9+</span>
+    </div>
+  </nav>
+
+  <main id="content">
+    <!-- Быстрый старт -->
+    <section class="section" id="quickstart" data-tags="start install generation basic">
+      <h2>1) Быстрый старт</h2>
+      <div class="grid cols-2">
+        <div>
+          <h3>Установка</h3>
+          <pre><button class="copy">Copy</button><code># Debian/Ubuntu
+sudo apt-get install doxygen graphviz
+
+# macOS (brew)
+brew install doxygen graphviz
+
+# Windows (choco)
+choco install doxygen.install graphviz</code></pre>
+          <div class="note">Graphviz нужен для диаграмм классов и графов вызовов.</div>
+        </div>
+        <div>
+          <h3>Генерация</h3>
+          <pre><button class="copy">Copy</button><code># 1) Создать шаблон конфигурации
+doxygen -g Doxyfile
+
+# 2) Отредактировать Doxyfile (INPUT, RECURSIVE, PROJECT_NAME, ...)
+# 3) Запустить
+doxygen Doxyfile
+
+# HTML по умолчанию: ./html/index.html</code></pre>
+        </div>
+      </div>
+      <h3>Минимальный Doxyfile (ядро)</h3>
+      <pre><button class="copy">Copy</button><code>PROJECT_NAME           = "My Project"
+OUTPUT_DIRECTORY       = docs
+INPUT                  = src include README.md
+RECURSIVE              = YES
+GENERATE_HTML          = YES
+EXTRACT_ALL            = YES
+OPTIMIZE_OUTPUT_FOR_C  = YES
+USE_MDFILE_AS_MAINPAGE = README.md
+# Диаграммы
+HAVE_DOT               = YES
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
+CLASS_DIAGRAMS         = YES</code></pre>
+    </section>
+
+    <!-- Комментарии и теги -->
+    <section class="section" id="comments" data-tags="tags comment param return brief details todo deprecated tparam">
+      <h2>2) Комментарии и теги</h2>
+      <div class="grid cols-2">
+        <div>
+          <h3>C/C++ стиль комментариев</h3>
+          <pre><button class="copy">Copy</button><code>/**
+ * \file motor.h
+ * \brief Драйвер мотора.
+ * \details Поддержка PWM, направление, торможение.
+ */
+
+/// \brief Инициализация мотора.
+/// \param pin ШИМ-пин.
+/// \return 0 при успехе, иначе код ошибки.
+int motor_init(int pin);
+
+/**
+ * \brief Устанавливает скорость.
+ * \param duty Скважность [0..100].
+ * \warning Не вызывайте до \ref motor_init().
+ * \todo Поддержать плавный разгон.
+ */
+void motor_set_speed(int duty);
+
+/**
+ * \tparam T тип значения
+ * \param value вход
+ * \return обработанное значение
+ */
+template&lt;typename T&gt; T filter(T value);</code></pre>
+        </div>
+        <div>
+          <h3>Python/Java (варианты)</h3>
+          <pre><button class="copy">Copy</button><code>##! \file sensor.py
+class Sensor:
+    """\brief Класс датчика.
+    \details Читает данные по I2C.
+    """
+
+    def read(self, n):
+        """\brief Читает N образцов.
+        \param n Количество образцов.
+        \return Список значений.
+        \note Использует буферизацию.
+        """
+        ...
+/**
+ * JavaDoc-комментарии тоже понимаются:
+ * @brief Encoder
+ * @param steps количество шагов
+ * @return текущее значение
+ */</code></pre>
+        </div>
+      </div>
+      <h3>Часто используемые теги</h3>
+      <table>
+        <tr><th>Тег</th><th>Назначение</th><th>Пример</th></tr>
+        <tr><td><code>\brief</code></td><td>Короткое описание</td><td><code>/// \brief Быстрый фильтр</code></td></tr>
+        <tr><td><code>\details</code></td><td>Развёрнутое описание</td><td>см. пример выше</td></tr>
+        <tr><td><code>\param</code>, <code>\tparam</code></td><td>Параметры функции/шаблона</td><td><code>\param size Размер</code></td></tr>
+        <tr><td><code>\return</code></td><td>Возвращаемое значение</td><td><code>\return Код ошибки</code></td></tr>
+        <tr><td><code>\note</code>, <code>\warning</code></td><td>Примечания и предупреждения</td><td>Акцент</td></tr>
+        <tr><td><code>\todo</code></td><td>Список задач</td><td><code>\todo Обработать переполнение</code></td></tr>
+        <tr><td><code>\deprecated</code></td><td>Пометка об устаревании</td><td>Версия/альтернатива</td></tr>
+      </table>
+    </section>
+
+    <!-- Страницы и разделы -->
+    <section class="section" id="pages" data-tags="page section subsection mainpage tutorial guide">
+      <h2>3) Страницы и разделы</h2>
+      <pre><button class="copy">Copy</button><code>/** \page getting_started Быстрый старт
+ * \section reqs Требования
+ *  - Компилятор C++17
+ *  - Doxygen 1.9+
+ * \section build Сборка
+ *  Сборка при помощи CMake/Make.
+ */
+
+ /** \mainpage Главная
+  * Добро пожаловать! См. \ref getting_started.
+  */</code></pre>
+      <div class="tip">Используйте <code>USE_MDFILE_AS_MAINPAGE</code>, чтобы главным стала <code>README.md</code>.</div>
+    </section>
+
+    <!-- Группы и модули -->
+    <section class="section" id="groups" data-tags="group module defgroup addtogroup ingroup">
+      <h2>4) Группы и модули</h2>
+      <pre><button class="copy">Copy</button><code>/** \defgroup io Ввод/вывод
+ *  \brief Драйверы ввода/вывода.
+ *  @{
+ */
+
+/// \ingroup io
+/// UART-драйвер.
+class Uart { ... };
+
+/** @} */</code></pre>
+      <div class="note">Группы помогают строить “модули” в оглавлении документации.</div>
+    </section>
+
+    <!-- Markdown -->
+    <section class="section" id="markdown" data-tags="markdown tables code fencing headings">
+      <h2>5) Markdown</h2>
+      <pre><button class="copy">Copy</button><code>/** \page usage Использование
+# Заголовок H1
+
+- Списки
+- **Жирный**, *курсив*
+- Код:
+
+```c++
+auto x = 42;
+```
+
+| Колонка | Значение |
+|--------:|---------:|
+| A       | 10       |
+*/</code></pre>
+      <div class="note">Убедитесь, что в Doxyfile включён Markdown (по умолчанию включён в 1.8+).</div>
+    </section>
+
+    <!-- Диаграммы -->
+    <section class="section" id="graphs" data-tags="graphviz dot plantuml uml call graph caller class">
+      <h2>6) Диаграммы: Graphviz и PlantUML</h2>
+      <div class="grid cols-2">
+        <div>
+          <h3>Graphviz (DOT)</h3>
+          <pre><button class="copy">Copy</button><code>/** \dot
+digraph G {
+  rankdir=LR;
+  Motor -&gt; PWM [label="controls"];
+  Sensor -&gt; I2C;
+}
+\enddot */</code></pre>
+          <pre><button class="copy">Copy</button><code># Doxyfile
+HAVE_DOT               = YES
+DOT_GRAPH_MAX_NODES    = 100
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
+CLASS_DIAGRAMS         = YES
+UML_LOOK               = YES</code></pre>
+        </div>
+        <div>
+          <h3>PlantUML (если подключён фильтр/внешняя интеграция)</h3>
+          <pre><button class="copy">Copy</button><code>/** \startuml
+@startuml
+actor User
+User --&gt; Controller: steer()
+Controller --&gt; Motor: setSpeed()
+@enduml
+\enduml */</code></pre>
+          <div class="warn">PlantUML требует отдельной настройки (FILTER_PATTERNS или INPUT_FILTER), а также Java/Graphviz.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Изображения и таблицы -->
+    <section class="section" id="images" data-tags="image formula table latex math">
+      <h2>7) Изображения и таблицы</h2>
+      <pre><button class="copy">Copy</button><code>/** \image html imgs/board.png "Плата" width=600
+ *  \image latex imgs/board.pdf "Плата" width=10cm
+ */</code></pre>
+      <pre><button class="copy">Copy</button><code>/** \brief Формула
+ *  \f$ v = s / t \f$
+ */</code></pre>
+    </section>
+
+    <!-- Doxyfile ключи -->
+    <section class="section" id="doxyfile-keys" data-tags="config options Doxyfile">
+      <h2>8) Doxyfile — ключевые опции</h2>
+      <table>
+        <tr><th>Опция</th><th>Назначение</th><th>Совет</th></tr>
+        <tr><td><code>PROJECT_NAME</code></td><td>Имя проекта</td><td>Короткое и читабельное</td></tr>
+        <tr><td><code>INPUT</code>, <code>RECURSIVE</code></td><td>Где искать исходники/MD</td><td>Добавьте <code>README.md</code></td></tr>
+        <tr><td><code>EXTRACT_ALL</code></td><td>Документировать всё</td><td>Для старта: <code>YES</code></td></tr>
+        <tr><td><code>EXTRACT_PRIVATE</code>, <code>EXTRACT_STATIC</code></td><td>Приватные элементы</td><td>Включайте по необходимости</td></tr>
+        <tr><td><code>HAVE_DOT</code></td><td>Включить Graphviz</td><td>Нужно для диаграмм</td></tr>
+        <tr><td><code>CALL_GRAPH</code>/<code>CALLER_GRAPH</code></td><td>Графы вызовов</td><td>Полезно в больших проектах</td></tr>
+        <tr><td><code>SOURCE_BROWSER</code></td><td>Просмотр исходников</td><td>С <code>INLINE_SOURCES</code> удобнее</td></tr>
+        <tr><td><code>WARN_IF_UNDOCUMENTED</code></td><td>Предупреждать о пропусках</td><td>Следите за качеством</td></tr>
+        <tr><td><code>WARN_AS_ERROR</code></td><td>Трактовать WARN как ошибки</td><td>Для CI строгости</td></tr>
+        <tr><td><code>STRIP_FROM_PATH</code></td><td>Чистый путь в ссылках</td><td>Уберите длинные префиксы</td></tr>
+        <tr><td><code>ALIASES</code></td><td>Собственные теги</td><td>Стандартизируйте стиль</td></tr>
+        <tr><td><code>HTML_EXTRA_STYLESHEET</code></td><td>Своя CSS</td><td>Для брендирования</td></tr>
+      </table>
+    </section>
+
+    <!-- Doxyfile шаблоны -->
+    <section class="section" id="doxyfile-templates" data-tags="templates minimal full">
+      <h2>9) Шаблоны Doxyfile</h2>
+      <h3>Минимальный</h3>
+      <pre><button class="copy">Copy</button><code>PROJECT_NAME           = "Demo"
+OUTPUT_DIRECTORY       = docs
+INPUT                  = src include README.md
+RECURSIVE              = YES
+GENERATE_HTML          = YES
+EXTRACT_ALL            = YES
+USE_MDFILE_AS_MAINPAGE = README.md</code></pre>
+
+      <h3>Расширенный</h3>
+      <pre><button class="copy">Copy</button><code>PROJECT_NAME            = "AwesomeLib"
+PROJECT_BRIEF           = "Математическая библиотека"
+OUTPUT_DIRECTORY        = docs
+INPUT                   = include src docs README.md
+FILE_PATTERNS           = *.h *.hpp *.c *.cpp *.md
+RECURSIVE               = YES
+
+EXTRACT_ALL             = NO
+EXTRACT_PRIVATE         = NO
+EXTRACT_PACKAGE         = NO
+EXTRACT_STATIC          = NO
+HIDE_UNDOC_MEMBERS      = NO
+HIDE_UNDOC_CLASSES      = NO
+
+GENERATE_HTML           = YES
+HTML_OUTPUT             = html
+SOURCE_BROWSER          = YES
+INLINE_SOURCES          = YES
+STRIP_FROM_PATH         = ${CMAKE_SOURCE_DIR}
+
+# Markdown как главная
+USE_MDFILE_AS_MAINPAGE  = README.md
+
+# Диаграммы
+HAVE_DOT                = YES
+CALL_GRAPH              = YES
+CALLER_GRAPH            = YES
+CLASS_DIAGRAMS          = YES
+UML_LOOK                = YES
+
+# Предварительная обработка
+ENABLE_PREPROCESSING    = YES
+MACRO_EXPANSION         = YES
+EXPAND_ONLY_PREDEF      = NO
+PREDEFINED              = NDEBUG
+
+# Качество
+WARN_IF_UNDOCUMENTED    = YES
+WARN_AS_ERROR           = NO
+
+# Брендинг
+HTML_EXTRA_STYLESHEET   = docs/extra.css
+HTML_EXTRA_FILES        = docs/logo.svg
+
+# Пользовательские алиасы
+ALIASES                 = "decision=\xrefitem decision \"Решение\" \"Решения\""
+ALIASES                += "risk=\xrefitem risk \"Риск\" \"Риски\""</code></pre>
+    </section>
+
+    <!-- ALIASES / PREDEFINED -->
+    <section class="section" id="aliases" data-tags="aliases predefined custom tags macro">
+      <h2>10) ALIASES и PREDEFINED</h2>
+      <div class="grid cols-2">
+        <div>
+          <h3>Пользовательские теги (ALIASES)</h3>
+          <pre><button class="copy">Copy</button><code># Doxyfile
+ALIASES += "decision=\xrefitem decision \"Решение\" \"Решения\""
+# Использование:
+/** \decision Ввести таймаут 100мс. */</code></pre>
+        </div>
+        <div>
+          <h3>Определения макросов (PREDEFINED)</h3>
+          <pre><button class="copy">Copy</button><code># Doxyfile
+PREDEFINED += "API_PUBLIC="
+PREDEFINED += "LIKELY(x)=x"
+# Убираем шум атрибутов/макросов из сигнатур</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Исключения и фильтры -->
+    <section class="section" id="exclude" data-tags="exclude patterns filters input filter">
+      <h2>11) Исключения и фильтры</h2>
+      <pre><button class="copy">Copy</button><code># Doxyfile
+EXCLUDE_PATTERNS = */third_party/* */build/* */.git/* */tests/generated/*
+# Внешний фильтр для языка/генерации доков на лету:
+# INPUT_FILTER = "python3 tools/dox_filter.py"</code></pre>
+      <div class="warn">Проверяйте, что <code>EXCLUDE_PATTERNS</code> не скрывает нужные файлы.</div>
+    </section>
+
+    <!-- Кастомизация HTML -->
+    <section class="section" id="style" data-tags="style css theme logo html_extra_stylesheet">
+      <h2>12) Кастомизация HTML</h2>
+      <pre><button class="copy">Copy</button><code>/* docs/extra.css */
+:root { --primary: #4ea1ff; }
+div#titlearea { background:#0e1620; }
+a { color: var(--primary); }</code></pre>
+      <pre><button class="copy">Copy</button><code># Doxyfile
+HTML_EXTRA_STYLESHEET = docs/extra.css
+HTML_EXTRA_FILES      = docs/logo.svg
+PROJECT_LOGO          = docs/logo.svg</code></pre>
+      <div class="tip">Своя CSS позволяет быстро “подружить” доки с брендингом проекта.</div>
+    </section>
+
+    <!-- Языки -->
+    <section class="section" id="langs" data-tags="c c++ python java examples">
+      <h2>13) Примеры по языкам</h2>
+      <div class="grid cols-2">
+        <div>
+          <h3>C/C++</h3>
+          <pre><button class="copy">Copy</button><code>/// \brief Нормализует значение в [0..1].
+/// \param v вход, \param min минимум, \param max максимум
+/// \return нормализованное значение
+double normalize(double v, double min, double max);</code></pre>
+        </div>
+        <div>
+          <h3>Python</h3>
+          <pre><button class="copy">Copy</button><code>def clamp(x, lo, hi):
+    """\\brief Ограничивает x диапазоном.
+    \\param x значение
+    \\param lo нижняя граница
+    \\param hi верхняя граница
+    \\return ограниченное значение
+    """
+    return max(lo, min(hi, x))</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Кросс-ссылки -->
+    <section class="section" id="xref" data-tags="ref see link anchor">
+      <h2>14) Кросс-ссылки</h2>
+      <pre><button class="copy">Copy</button><code>/** См. \ref motor_init() и \ref io "модуль ввода/вывода".
+ *  Ссылка на внешний URL: \link https://example.com Гайд \endlink
+ *  \see motor_set_speed(), \ref getting_started
+ */</code></pre>
+    </section>
+
+    <!-- CI -->
+    <section class="section" id="ci" data-tags="ci github gitlab pipeline make cmake">
+      <h2>15) Интеграция со сборкой/CI</h2>
+      <div class="grid cols-2">
+        <div>
+          <h3>CLI/Make</h3>
+          <pre><button class="copy">Copy</button><code># Makefile
+docs:
+	doxygen Doxyfile
+
+.PHONY: docs</code></pre>
+        </div>
+        <div>
+          <h3>CMake (если поддерживается)</h3>
+          <pre><button class="copy">Copy</button><code>find_package(Doxygen REQUIRED)
+add_custom_target(docs ALL
+  COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Doxyfile
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMENT "Generating documentation with Doxygen")</code></pre>
+        </div>
+      </div>
+      <h3>GitHub Actions (минимум)</h3>
+      <pre><button class="copy">Copy</button><code>name: docs
+on: { push: { branches: [ "main" ] } }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: sudo apt-get update &amp;&amp; sudo apt-get install -y doxygen graphviz
+    - run: doxygen Doxyfile
+    - uses: actions/upload-pages-artifact@v3
+      with: { path: docs/html }
+  deploy:
+    needs: build
+    permissions: { pages: write, id-token: write }
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/deploy-pages@v4</code></pre>
+    </section>
+
+    <!-- Контроль качества -->
+    <section class="section" id="warnings" data-tags="quality warn undocumented coverage strict">
+      <h2>16) Контроль качества</h2>
+      <ul>
+        <li><code>WARN_IF_UNDOCUMENTED = YES</code> — подсветит пропущенные комментарии.</li>
+        <li><code>WARN_AS_ERROR = YES</code> — “ломаем” сборку при предупреждениях (строго).</li>
+        <li><code>EXTRACT_ALL = NO</code> + <code>HIDE_UNDOC_*</code> — показывайте только задокументированное.</li>
+      </ul>
+      <div class="tip">Повесьте цель “docs” в CI, чтобы держать документацию в актуальном состоянии.</div>
+    </section>
+
+    <!-- Траблшутинг -->
+    <section class="section" id="troubleshoot" data-tags="errors missing graphviz plantuml preprocess paths">
+      <h2>17) Траблшутинг</h2>
+      <ul>
+        <li><strong>Нет диаграмм:</strong> проверьте <code>HAVE_DOT=YES</code> и установлен ли Graphviz (<code>dot -V</code>).</li>
+        <li><strong>Пустые страницы:</strong> убедитесь, что <code>INPUT</code>/<code>FILE_PATTERNS</code> указывают на нужные файлы, а <code>EXCLUDE_PATTERNS</code> их не скрывает.</li>
+        <li><strong>Markdown не рендерится:</strong> используйте <code>.md</code> расширения и корректные fenced-коды <code>```</code>.</li>
+        <li><strong>Шум от макросов:</strong> добавьте их в <code>PREDEFINED</code> или включите <code>MACRO_EXPANSION</code>.</li>
+        <li><strong>PlantUML не виден:</strong> нужен фильтр/интеграция и Java+Graphviz.</li>
+      </ul>
+      <div class="note">Смотрите подробный лог <code>doxygen Doxyfile 2&gt;&amp;1 | tee doxygen.log</code>.</div>
+    </section>
+
+    <footer>
+      Готово. Этот файл можно положить как <code>docs/doxygen-cookbook.html</code> и открыть в браузере локально.
+    </footer>
+  </main>
+</div>
+
+<script>
+  // Копирование кода
+  document.querySelectorAll('pre .copy').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const code = e.target.parentElement.querySelector('code').innerText;
+      navigator.clipboard.writeText(code).then(()=>{
+        btn.textContent = 'Copied!';
+        setTimeout(()=>btn.textContent='Copy', 1200);
+      });
+    });
+  });
+
+  // Фильтр по разделам
+  const q = document.getElementById('q');
+  q.addEventListener('input', ()=>{
+    const term = q.value.trim().toLowerCase();
+    const sections = document.querySelectorAll('.section');
+    sections.forEach(sec=>{
+      if(!term){ sec.classList.remove('hidden'); return; }
+      const text = (sec.innerText || '').toLowerCase();
+      const tags = (sec.dataset.tags || '').toLowerCase();
+      if(text.includes(term) || tags.includes(term)){
+        sec.classList.remove('hidden');
+      } else {
+        sec.classList.add('hidden');
+      }
+    });
+  });
+
+  // Плавный скролл
+  document.querySelectorAll('nav a[href^="#"]').forEach(a=>{
+    a.addEventListener('click', (e)=>{
+      e.preventDefault();
+      const id = a.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
+      history.replaceState(null,null,'#'+id);
+    });
+  });
+</script>
+</body>
+</html>
