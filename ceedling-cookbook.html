@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ceedling (C) — мини‑cookbook</title>
+  <style>
+    :root{
+      --bg:#0f1320; --text:#e6e9ef; --muted:#9aa4b2; --card:#171a2b; --accent:#6ee7ff; --accent-2:#a78bfa;
+      --border:#232840; --kbd:#10131f; --green:#2dd4bf; --red:#f87171; --yellow:#facc15;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    a{color:var(--accent)} a:hover{color:#bff4ff}
+    .wrap{display:grid;grid-template-columns: 300px 1fr;min-height:100vh}
+    aside{border-right:1px solid var(--border);background:linear-gradient(180deg,#0e1221,#0a0d19)}
+    main{padding:24px 24px 80px}
+    .brand{padding:20px;border-bottom:1px solid var(--border)}
+    .brand h1{margin:0;font-size:18px;letter-spacing:.2px}
+    .brand small{color:var(--muted)}
+    .nav{padding:12px 6px 18px;position:sticky;top:0;max-height:calc(100vh - 70px);overflow:auto}
+    .nav a{display:block;padding:8px 12px;border-radius:10px;color:var(--text);text-decoration:none}
+    .nav a:hover{background:rgba(255,255,255,.04)}
+    .badge{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:12px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin:14px 0}
+    h2{margin:28px 0 8px}
+    h3{margin:22px 0 8px}
+    .grid{display:grid;gap:14px}
+    .grid.cols-2{grid-template-columns: 1fr 1fr}
+    @media (max-width: 920px){ .wrap{grid-template-columns:1fr} aside{position:sticky;top:0;z-index:10} }
+    pre{margin:10px 0;background:#0b0f1a;border:1px solid var(--border);border-radius:14px;overflow:auto}
+    pre code{display:block;padding:14px 16px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:13px}
+    .codebar{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:6px 10px;border:1px solid var(--border);border-bottom:none;border-radius:14px 14px 0 0;background:#0d1220}
+    .codebar .title{font:600 12px/1.2 ui-monospace,monospace;color:var(--muted)}
+    .btn{appearance:none;border:1px solid var(--border);background:#0f1527;color:var(--text);padding:6px 10px;border-radius:10px;cursor:pointer;font-size:12px}
+    .btn:hover{background:#141b31}
+    .tip{border-left:3px solid var(--green);padding:10px 12px;background:#0c1414;border-radius:10px}
+    .warn{border-left:3px solid var(--yellow);padding:10px 12px;background:#141208;border-radius:10px}
+    .err{border-left:3px solid var(--red);padding:10px 12px;background:#1a0b0b;border-radius:10px}
+    table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;font-size:14px}
+    th{background:#12162a;text-align:left}
+    tr:last-child td{border-bottom:none}
+    .hl{color:var(--accent-2)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside>
+      <div class="brand">
+        <h1>Ceedling (C) — мини‑cookbook</h1>
+        <small>Оркестратор для Unity+CMock, тестов, покрытия и JUnit отчётов. Работает через Ruby.</small>
+      </div>
+      <nav class="nav" id="toc">
+        <a href="#quickstart">Быстрый старт</a>
+        <a href="#structure">Структура проекта</a>
+        <a href="#config">Конфигурация project.yml</a>
+        <a href="#tasks">Основные команды</a>
+        <a href="#coverage">Покрытие (gcov/gcovr/lcov)</a>
+        <a href="#plugins">Плагины</a>
+        <a href="#ci">Интеграция с CI</a>
+        <a href="#troubleshooting">Ошибки и тонкости</a>
+        <a href="#links">Полезные ссылки</a>
+      </nav>
+    </aside>
+    <main>
+      <section class="card" id="quickstart">
+        <h2>Быстрый старт</h2>
+        <ol>
+          <li>Установите Ruby (>=2.5) и bundler.</li>
+          <li><code>gem install ceedling</code> или добавьте в Gemfile.</li>
+          <li><code>ceedling new proj</code> — создаст скелет.</li>
+          <li>Поместите исходники в <code>src/</code>, тесты в <code>test/</code>.</li>
+          <li>Настройте <code>project.yml</code> (включите CMock, плагины, покрытие).</li>
+          <li><code>ceedling test:all</code> — запустит всё.</li>
+        </ol>
+        <div class="tip">Ceedling сам подтянет Unity и CMock как подмодули (в <code>vendor/</code>), можно подключить свои версии.</div>
+      </section>
+
+      <section class="card" id="structure">
+        <h2>Структура проекта</h2>
+        <pre><code>proj/
+  src/           # исходники
+  test/          # тесты (test_*.c)
+  project.yml    # конфигурация
+  vendor/        # Unity, CMock, плагины
+  build/         # артефакты, mock-файлы, отчёты
+</code></pre>
+      </section>
+
+      <section class="card" id="config">
+        <h2>Конфигурация project.yml</h2>
+        <div class="grid cols-2">
+          <div>
+            <div class="codebar"><span class="title">Минимум</span><button class="btn" data-copy="#code-yml-min">копировать</button></div>
+            <pre><code id="code-yml-min">:project:
+  :use_exceptions: FALSE
+  :test_file_prefix: test_
+
+:cmock:
+  :mock_prefix: mock_
+  :plugins:
+    - :ignore
+    - :return_thru_ptr
+
+:test:
+  :includes:
+    - src
+  :mock:
+    - drivers/adc.h
+</code></pre>
+          </div>
+          <div>
+            <div class="codebar"><span class="title">С покрытием и JUnit</span><button class="btn" data-copy="#code-yml-cov">копировать</button></div>
+            <pre><code id="code-yml-cov">:tools:
+  :test_compiler:
+    :executable: gcc
+    :arguments:
+      - -Wall -Wextra
+      - --coverage
+
+:plugins:
+  :enabled:
+    - junit_tests_report
+    - gcov
+    - gcovr
+
+:gcov:
+  :html_report: TRUE
+  :html_report_type: detailed
+</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="tasks">
+        <h2>Основные команды</h2>
+        <table>
+          <thead><tr><th>Команда</th><th>Назначение</th></tr></thead>
+          <tbody>
+            <tr><td><code>ceedling test:all</code></td><td>Запустить все тесты</td></tr>
+            <tr><td><code>ceedling test:&lt;имя&gt;</code></td><td>Запустить конкретный файл (без <code>test_</code>)</td></tr>
+            <tr><td><code>ceedling gcov:all</code></td><td>Запустить с покрытием gcov</td></tr>
+            <tr><td><code>ceedling clobber</code></td><td>Очистить артефакты</td></tr>
+            <tr><td><code>ceedling help</code></td><td>Список целей</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card" id="coverage">
+        <h2>Покрытие (gcov/gcovr/lcov)</h2>
+        <ul>
+          <li>Поддержка в Ceedling через плагины <code>gcov</code> и <code>gcovr</code>.</li>
+          <li>Добавьте <code>--coverage</code> в аргументы компилятора.</li>
+          <li>Для HTML отчётов gcovr — опция <code>:html_report: TRUE</code>.</li>
+          <li>Для lcov можно использовать внешний генератор: <code>lcov --capture ...</code>.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="plugins">
+        <h2>Плагины</h2>
+        <ul>
+          <li><code>stdout_pretty_tests_report</code> — цветной вывод.</li>
+          <li><code>junit_tests_report</code> — JUnit XML для CI.</li>
+          <li><code>gcov</code>, <code>gcovr</code> — покрытие.</li>
+          <li><code>xml_tests_report</code> — отчёты в XML.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="ci">
+        <h2>Интеграция с CI</h2>
+        <p>В GitLab CI:</p>
+        <pre><code>ceedling test:all
+ceedling gcov:all
+artifacts:
+  paths:
+    - build/artifacts/test/report.html
+    - build/artifacts/test/junit_report.xml
+</code></pre>
+        <p class="tip">Можно упаковать Ceedling в Docker-образ с Ruby, gcc, gcovr для воспроизводимых билдов.</p>
+      </section>
+
+      <section class="card" id="troubleshooting">
+        <h2>Ошибки и тонкости</h2>
+        <ul>
+          <li>Пути в <code>project.yml</code> относительные к корню проекта.</li>
+          <li>Моки генерируются в <code>build/test/mocks</code>.</li>
+          <li>Поддержка embedded: можно указать свой компилятор (IAR, arm-none-eabi-gcc).</li>
+          <li>Для нестандартных include путей используйте <code>:includes:</code> в секции <code>:test:</code>.</li>
+          <li>Ruby‑версии: старые версии Ceedling могут не работать с Ruby 3.x — проверьте документацию.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="links">
+        <h2>Полезные ссылки</h2>
+        <ul>
+          <li>Ceedling GitHub: <a href="https://github.com/ThrowTheSwitch/Ceedling" target="_blank" rel="noopener">github.com/ThrowTheSwitch/Ceedling</a></li>
+          <li>Документация: <a href="https://www.throwtheswitch.org/ceedling" target="_blank" rel="noopener">throwtheswitch.org/ceedling</a></li>
+          <li>Unity: <a href="https://github.com/ThrowTheSwitch/Unity" target="_blank" rel="noopener">github.com/ThrowTheSwitch/Unity</a></li>
+          <li>CMock: <a href="https://github.com/ThrowTheSwitch/CMock" target="_blank" rel="noopener">github.com/ThrowTheSwitch/CMock</a></li>
+        </ul>
+      </section>
+    </main>
+  </div>
+  <script>
+    document.querySelectorAll('[data-copy]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const target = document.querySelector(btn.getAttribute('data-copy'));
+        if(!target) return;
+        const text = target.textContent;
+        navigator.clipboard.writeText(text).then(()=>{
+          const old = btn.textContent; btn.textContent='скопировано';
+          setTimeout(()=>btn.textContent=old,1000);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
+
