@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Unity (C) — мини‑cookbook</title>
+  <style>
+    :root{
+      --bg:#0f1320; --text:#e6e9ef; --muted:#9aa4b2; --card:#171a2b; --accent:#6ee7ff; --accent-2:#a78bfa;
+      --border:#232840; --kbd:#10131f; --green:#2dd4bf; --red:#f87171; --yellow:#facc15;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    a{color:var(--accent)} a:hover{color:#bff4ff}
+    .wrap{display:grid;grid-template-columns: 300px 1fr;min-height:100vh}
+    aside{border-right:1px solid var(--border);background:linear-gradient(180deg,#0e1221,#0a0d19)}
+    main{padding:24px 24px 80px}
+    .brand{padding:20px;border-bottom:1px solid var(--border)}
+    .brand h1{margin:0;font-size:18px;letter-spacing:.2px}
+    .brand small{color:var(--muted)}
+    .nav{padding:12px 6px 18px;position:sticky;top:0;max-height:calc(100vh - 70px);overflow:auto}
+    .nav a{display:block;padding:8px 12px;border-radius:10px;color:var(--text);text-decoration:none}
+    .nav a:hover{background:rgba(255,255,255,.04)}
+    .badge{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:12px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin:14px 0}
+    h2{margin:28px 0 8px}
+    h3{margin:22px 0 8px}
+    .grid{display:grid;gap:14px}
+    .grid.cols-2{grid-template-columns: 1fr 1fr}
+    @media (max-width: 920px){ .wrap{grid-template-columns:1fr} aside{position:sticky;top:0;z-index:10} }
+    pre{margin:10px 0;background:#0b0f1a;border:1px solid var(--border);border-radius:14px;overflow:auto}
+    pre code{display:block;padding:14px 16px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:13px}
+    .codebar{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:6px 10px;border:1px solid var(--border);border-bottom:none;border-radius:14px 14px 0 0;background:#0d1220}
+    .codebar .title{font:600 12px/1.2 ui-monospace,monospace;color:var(--muted)}
+    .btn{appearance:none;border:1px solid var(--border);background:#0f1527;color:var(--text);padding:6px 10px;border-radius:10px;cursor:pointer;font-size:12px}
+    .btn:hover{background:#141b31}
+    kbd{background:var(--kbd);border:1px solid var(--border);border-bottom-color:#0003;color:var(--muted);padding:2px 6px;border-radius:6px;font-size:12px}
+    .tip{border-left:3px solid var(--green);padding:10px 12px;background:#0c1414;border-radius:10px}
+    .warn{border-left:3px solid var(--yellow);padding:10px 12px;background:#141208;border-radius:10px}
+    .err{border-left:3px solid var(--red);padding:10px 12px;background:#1a0b0b;border-radius:10px}
+    table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;font-size:14px}
+    th{background:#12162a;text-align:left}
+    tr:last-child td{border-bottom:none}
+    .hl{color:var(--accent-2)}
+    .header-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .search{flex:1;min-width:180px}
+    .search input{width:100%;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:#0f1527;color:var(--text)}
+    .pill{padding:3px 8px;border:1px dashed var(--border);border-radius:999px;color:var(--muted);font-size:12px}
+    .footer{margin-top:28px;color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside>
+      <div class="brand">
+        <h1>Unity (C) — мини‑cookbook</h1>
+        <div class="header-tools">
+          <span class="pill">Embedded / чистый C</span>
+        </div>
+        <small>Лёгкий фреймворк для unit‑тестов на C. Подходит для embedded.</small>
+      </div>
+      <nav class="nav" id="toc">
+        <a href="#quickstart">Быстрый старт</a>
+        <a href="#anatomy">Анатомия теста</a>
+        <a href="#assertions">Шпаргалка по assert</a>
+        <a href="#fixture">Группы/фикстуры (unity_fixture)</a>
+        <a href="#build">Сборка и запуск</a>
+        <a href="#tips">Рецепты и приёмы</a>
+        <a href="#troubleshooting">Ошибки и отладка</a>
+        <a href="#links">Полезные ссылки</a>
+      </nav>
+    </aside>
+    <main>
+      <section class="card" id="quickstart">
+        <h2>Быстрый старт</h2>
+        <p>Unity состоит из одного C‑файла <code>unity.c</code> и пары заголовков. Базовый цикл:</p>
+        <ol>
+          <li>Подключите <code>unity.h</code> в тестах.</li>
+          <li>Напишите тест‑функции <code>void test_...</code>.</li>
+          <li>Создайте раннер (с <code>UNITY_BEGIN()</code> / <code>RUN_TEST()</code> / <code>UNITY_END()</code>).</li>
+          <li>Соберите вместе <em>код + тесты + unity.c</em>.</li>
+        </ol>
+        <div class="grid cols-2">
+          <div>
+            <div class="codebar"><span class="title">src/math.h</span><button class="btn" data-copy="#code-math-h">копировать</button></div>
+            <pre><code id="code-math-h">#pragma once
+int add(int a, int b);
+int div_safe(int a, int b);</code></pre>
+          </div>
+          <div>
+            <div class="codebar"><span class="title">src/math.c</span><button class="btn" data-copy="#code-math-c">копировать</button></div>
+            <pre><code id="code-math-c">#include "math.h"
+int add(int a, int b){ return a + b; }
+int div_safe(int a, int b){ return (b==0)?0: a/b; }</code></pre>
+          </div>
+        </div>
+        <div class="grid cols-2">
+          <div>
+            <div class="codebar"><span class="title">test/test_math.c</span><button class="btn" data-copy="#code-test-math">копировать</button></div>
+            <pre><code id="code-test-math">#include "unity.h"
+#include "math.h"
+
+void setUp(void) {}
+void tearDown(void) {}
+
+void test_add_should_sum_two_ints(void){
+    TEST_ASSERT_EQUAL_INT(7, add(3,4));
+}
+
+void test_div_safe_should_return_0_on_div_by_zero(void){
+    TEST_ASSERT_EQUAL_INT(0, div_safe(10, 0));
+}</code></pre>
+          </div>
+          <div>
+            <div class="codebar"><span class="title">test/test_runner.c</span><button class="btn" data-copy="#code-runner">копировать</button></div>
+            <pre><code id="code-runner">#include "unity.h"
+
+extern void test_add_should_sum_two_ints(void);
+extern void test_div_safe_should_return_0_on_div_by_zero(void);
+
+int main(void){
+    UNITY_BEGIN();
+    RUN_TEST(test_add_should_sum_two_ints);
+    RUN_TEST(test_div_safe_should_return_0_on_div_by_zero);
+    return UNITY_END();
+}</code></pre>
+          </div>
+        </div>
+        <div class="tip">Совет: имена тестов говорите глаголами и ожидаемым поведением: <span class="hl">should_...</span>.</div>
+      </section>
+
+      <section class="card" id="anatomy">
+        <h2>Анатомия теста</h2>
+        <ul>
+          <li><code>setUp()</code> / <code>tearDown()</code> — опциональные глобальные фикстуры для каждого теста.</li>
+          <li><code>TEST_ASSERT_*</code> — семейство проверок. При провале тест прерывается.</li>
+          <li><code>TEST_FAIL()</code>, <code>TEST_IGNORE()</code> — форс‑фейл/игнор.</li>
+        </ul>
+        <div class="grid cols-2">
+          <div>
+            <div class="codebar"><span class="title">Фикстуры</span><button class="btn" data-copy="#code-fixture">копировать</button></div>
+            <pre><code id="code-fixture">static int g_resource;
+void setUp(void){ g_resource = 42; }
+void tearDown(void){ /* cleanup */ }</code></pre>
+          </div>
+          <div>
+            <div class="codebar"><span class="title">Параметризованный подход</span><button class="btn" data-copy="#code-param">копировать</button></div>
+            <pre><code id="code-param">typedef struct { int a,b,expect; } Case;
+static const Case cs[] = { {1,2,3}, {2,2,4}, {10,-5,5} };
+void test_add_cases(void){
+    for(size_t i=0;i<sizeof(cs)/sizeof(cs[0]);++i){
+        TEST_ASSERT_EQUAL_INT(cs[i].expect, add(cs[i].a, cs[i].b));
+    }
+}</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="assertions">
+        <h2>Шпаргалка по assert</h2>
+        <table>
+          <thead><tr><th>Проверка</th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td><code>TEST_ASSERT_TRUE(x)</code> / <code>FALSE</code></td><td>Булевы проверки.</td></tr>
+            <tr><td><code>TEST_ASSERT_EQUAL_INT(exp, act)</code></td><td>Для <code>int</code> (есть варианты: <code>_HEX</code>, <code>_UINT</code>, <code>_INT8/16/32/64</code>).</td></tr>
+            <tr><td><code>TEST_ASSERT_EQUAL_PTR(exp, act)</code></td><td>Указатели.</td></tr>
+            <tr><td><code>TEST_ASSERT_NULL(p)</code> / <code>NOT_NULL</code></td><td>NULL/не NULL.</td></tr>
+            <tr><td><code>TEST_ASSERT_EQUAL_STRING(exp, act)</code></td><td>С‑строки (до <code>\0</code>). Есть <code>_LEN</code>/<code>_IGNORE_CASE</code>.</td></tr>
+            <tr><td><code>TEST_ASSERT_EQUAL_MEMORY(exp, act, len)</code></td><td>Побайтное сравнение буферов.</td></tr>
+            <tr><td><code>TEST_ASSERT_EQUAL_INT_ARRAY(exp, act, n)</code></td><td>Сравнение массивов примитивов (есть варианты для типов).</td></tr>
+            <tr><td><code>TEST_ASSERT_FLOAT_WITHIN(delta, exp, act)</code></td><td>С допуском для <code>float</code> (есть <code>DOUBLE</code>).</td></tr>
+            <tr><td><code>TEST_FAIL_MESSAGE("why")</code></td><td>Принудительно «уронить» тест с сообщением.</td></tr>
+            <tr><td><code>TEST_IGNORE_MESSAGE("why")</code></td><td>Пометить как пропущенный.</td></tr>
+          </tbody>
+        </table>
+        <p class="badge">Полный список смотрите в документации (ссылки ниже).</p>
+      </section>
+
+      <section class="card" id="fixture">
+        <h2>Группы/фикстуры: <code>unity_fixture</code> (экстра)</h2>
+        <p>Расширение <em>Unity Fixture</em> добавляет семантику групп тестов: <code>TEST_GROUP</code>, <code>TEST_SETUP</code>, <code>TEST_TEAR_DOWN</code>, <code>TEST()</code>, <code>RUN_TEST_CASE()</code>.</p>
+        <div class="grid cols-2">
+          <div>
+            <div class="codebar"><span class="title">tests/test_math_fixture.c</span><button class="btn" data-copy="#code-ufix">копировать</button></div>
+            <pre><code id="code-ufix">#include "unity.h"
+#include "unity_fixture.h"
+#include "math.h"
+
+TEST_GROUP(Math);
+
+TEST_SETUP(Math) { /* per-group setup */ }
+TEST_TEAR_DOWN(Math) { /* per-group cleanup */ }
+
+TEST(Math, Adds){ TEST_ASSERT_EQUAL_INT(7, add(3,4)); }
+TEST(Math, DivZero){ TEST_ASSERT_EQUAL_INT(0, div_safe(10,0)); }
+</code></pre>
+          </div>
+          <div>
+            <div class="codebar"><span class="title">tests/all_tests.c</span><button class="btn" data-copy="#code-ufix-main">копировать</button></div>
+            <pre><code id="code-ufix-main">#include "unity_fixture.h"
+static void RunAllTests(void){
+    RUN_TEST_GROUP(Math);
+}
+int main(int argc, const char* argv[]){
+    return UnityMain(argc, argv, RunAllTests);
+}
+</code></pre>
+          </div>
+        </div>
+        <div class="tip">Подключите <code>extras/fixture/src</code> в include‑пути и соберите <code>unity_fixture.c</code> вместе с тестами.</div>
+      </section>
+
+      <section class="card" id="build">
+        <h2>Сборка и запуск</h2>
+        <div class="grid cols-2">
+          <div>
+            <h3>Минимальная сборка (native GCC)</h3>
+            <div class="codebar"><span class="title">CLI</span><button class="btn" data-copy="#code-build">копировать</button></div>
+            <pre><code id="code-build"># получить исходники Unity (например, как git submodule)
+# git submodule add https://github.com/ThrowTheSwitch/Unity third_party/Unity
+
+# компиляция простой версии без fixture
+cc -I third_party/Unity/src -Isrc \
+   test/test_math.c test/test_runner.c src/math.c \
+   third_party/Unity/src/unity.c -o build/tests_math
+
+./build/tests_math
+
+# c unity_fixture (добавьте инклюды и файл реализации)
+cc -I third_party/Unity/src -I third_party/Unity/extras/fixture/src -Isrc \
+   tests/test_math_fixture.c tests/all_tests.c src/math.c \
+   third_party/Unity/src/unity.c \
+   third_party/Unity/extras/fixture/src/unity_fixture.c -o build/tests_math_fix
+
+./build/tests_math_fix</code></pre>
+          </div>
+          <div>
+            <h3>Кросс‑сборка / embedded</h3>
+            <div class="warn">На целевых MCU обычно запускают тесты на хосте (native) либо на симуляторе. Для bare‑metal можно сделать вывод через UART/semihosting.</div>
+            <ul>
+              <li>Компилятор: используйте ваш <code>$CC</code> (IAR/ARM GCC/Clang…).</li>
+              <li>Отключите стандартную библиотеку, если нужно: <code>-nostdlib</code>.</li>
+              <li>Подмените <code>UnityOutputChar()</code> для доставки лога (опционально).</li>
+            </ul>
+          </div>
+        </div>
+        <div class="tip">Автоматизация и отчёты JUnit XML удобнее через <strong>Ceedling</strong> (см. ссылки ниже).</div>
+      </section>
+
+      <section class="card" id="tips">
+        <h2>Рецепты и приёмы</h2>
+        <ul>
+          <li><strong>Проверка ошибок API</strong>: проверяйте не только значения, но и побочные эффекты (флаги, буферы, состояние).</li>
+          <li><strong>Склейка с моками</strong>: для лёгких стабов используйте FFF; для автогенерации моков из заголовков — CMock (лучше через Ceedling).</li>
+          <li><strong>Длинные сообщения</strong>: используйте варианты <code>..._MESSAGE("text")</code> для контекста.</li>
+          <li><strong>Float/Double</strong>: применяйте <code>..._WITHIN()</code> с допуском; выставьте точность макросами конфигурации Unity при необходимости.</li>
+          <li><strong>Падение теста</strong>: <code>TEST_FAIL()</code> удобно в ветках <em>default:</em> switch‑ей.</li>
+          <li><strong>Игнор временных тестов</strong>: помечайте <code>TEST_IGNORE()</code> вместо удаления.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="troubleshooting">
+        <h2>Ошибки и отладка</h2>
+        <ul>
+          <li><strong>Multiple Definition <code>setUp/tearDown</code></strong> — убедитесь, что они определены <em>один раз</em> на единицу трансляции с тестами.</li>
+          <li><strong>Ничего не запускается</strong> — проверьте, что вызываете <code>RUN_TEST(...)</code> либо используете <code>UnityMain</code> из <code>unity_fixture</code>.</li>
+          <li><strong>Странные символы в выводе</strong> — проблема терминала / переноса строк на целевой платформе; перенастройте вывод/семихостинг.</li>
+          <li><strong>Сборка с <em>unity_fixture</em> падает</strong> — добавьте к сборке <code>unity_fixture.c</code> и инклюд <code>extras/fixture/src</code>.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="links">
+        <h2>Полезные ссылки</h2>
+        <ul>
+          <li>Unity (GitHub): <a href="https://github.com/ThrowTheSwitch/Unity" target="_blank" rel="noopener">github.com/ThrowTheSwitch/Unity</a></li>
+          <li>Официальный «Getting Started»: <a href="https://www.throwtheswitch.org/getting-started-with-unity" target="_blank" rel="noopener">throwtheswitch.org/getting-started-with-unity</a></li>
+          <li>Страница Unity на Throw The Switch: <a href="https://www.throwtheswitch.org/unity" target="_blank" rel="noopener">throwtheswitch.org/unity</a></li>
+          <li>Cheat Sheet по assert (PDF в репозитории): <a href="https://github.com/ThrowTheSwitch/Unity/blob/master/docs/UnityAssertionsCheatSheetSuitableforPrintingandPossiblyFraming.pdf" target="_blank" rel="noopener">Unity Assertions Cheat Sheet</a></li>
+          <li>Fixture (группы тестов): исходники: <a href="https://github.com/ThrowTheSwitch/Unity/tree/master/extras/fixture" target="_blank" rel="noopener">extras/fixture</a></li>
+          <li>Ceedling (оркестратор): <a href="https://github.com/ThrowTheSwitch/Ceedling" target="_blank" rel="noopener">github.com/ThrowTheSwitch/Ceedling</a></li>
+          <li>Документация PlatformIO по Unity: <a href="https://docs.platformio.org/en/stable/advanced/unit-testing/frameworks/unity.html" target="_blank" rel="noopener">docs.platformio.org/.../unity.html</a></li>
+        </ul>
+        <p class="footer">Подготовлено как шпаргалка. Добавляйте Unity в проект как сабмодуль/копию исходников. Для CI и отчётов JUnit удобнее использовать Ceedling.</p>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Кнопки копирования
+    document.querySelectorAll('[data-copy]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const target = document.querySelector(btn.getAttribute('data-copy'));
+        if(!target) return;
+        const text = target.textContent;
+        navigator.clipboard.writeText(text).then(()=>{
+          const old = btn.textContent; btn.textContent='скопировано';
+          setTimeout(()=>btn.textContent=old,1000);
+        });
+      });
+    });
+
+    // Простейший фильтр по заголовкам (поиск)
+    const searchBox = document.querySelector('#search');
+    if(searchBox){
+      searchBox.addEventListener('input', (e)=>{
+        const q = e.target.value.toLowerCase();
+        document.querySelectorAll('main section').forEach(sec=>{
+          const txt = sec.textContent.toLowerCase();
+          sec.style.display = txt.includes(q)?'block':'none';
+        });
+      });
+    }
+  </script>
+</body>
+</html>
+
