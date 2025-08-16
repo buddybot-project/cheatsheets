@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FFF (C) — мини‑cookbook</title>
+  <style>
+    :root{
+      --bg:#0f1320; --text:#e6e9ef; --muted:#9aa4b2; --card:#171a2b; --accent:#6ee7ff; --accent-2:#a78bfa;
+      --border:#232840; --kbd:#10131f; --green:#2dd4bf; --red:#f87171; --yellow:#facc15;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    a{color:var(--accent)} a:hover{color:#bff4ff}
+    .wrap{display:grid;grid-template-columns: 300px 1fr;min-height:100vh}
+    aside{border-right:1px solid var(--border);background:linear-gradient(180deg,#0e1221,#0a0d19)}
+    main{padding:24px 24px 80px}
+    .brand{padding:20px;border-bottom:1px solid var(--border)}
+    .brand h1{margin:0;font-size:18px;letter-spacing:.2px}
+    .brand small{color:var(--muted)}
+    .nav{padding:12px 6px 18px;position:sticky;top:0;max-height:calc(100vh - 70px);overflow:auto}
+    .nav a{display:block;padding:8px 12px;border-radius:10px;color:var(--text);text-decoration:none}
+    .nav a:hover{background:rgba(255,255,255,.04)}
+    .badge{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:12px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin:14px 0}
+    h2{margin:28px 0 8px}
+    h3{margin:22px 0 8px}
+    .grid{display:grid;gap:14px}
+    .grid.cols-2{grid-template-columns: 1fr 1fr}
+    @media (max-width: 920px){ .wrap{grid-template-columns:1fr} aside{position:sticky;top:0;z-index:10} }
+    pre{margin:10px 0;background:#0b0f1a;border:1px solid var(--border);border-radius:14px;overflow:auto}
+    pre code{display:block;padding:14px 16px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:13px}
+    .codebar{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:6px 10px;border:1px solid var(--border);border-bottom:none;border-radius:14px 14px 0 0;background:#0d1220}
+    .codebar .title{font:600 12px/1.2 ui-monospace,monospace;color:var(--muted)}
+    .btn{appearance:none;border:1px solid var(--border);background:#0f1527;color:var(--text);padding:6px 10px;border-radius:10px;cursor:pointer;font-size:12px}
+    .btn:hover{background:#141b31}
+    .tip{border-left:3px solid var(--green);padding:10px 12px;background:#0c1414;border-radius:10px}
+    .warn{border-left:3px solid var(--yellow);padding:10px 12px;background:#141208;border-radius:10px}
+    .err{border-left:3px solid var(--red);padding:10px 12px;background:#1a0b0b;border-radius:10px}
+    table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;font-size:14px}
+    th{background:#12162a;text-align:left}
+    tr:last-child td{border-bottom:none}
+    .hl{color:var(--accent-2)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside>
+      <div class="brand">
+        <h1>FFF (C) — мини‑cookbook</h1>
+        <small>Fake Function Framework — лёгкие стабы и моки для C без генерации кода.</small>
+      </div>
+      <nav class="nav" id="toc">
+        <a href="#quickstart">Быстрый старт</a>
+        <a href="#api">API макросов</a>
+        <a href="#examples">Примеры использования</a>
+        <a href="#patterns">Типовые приёмы</a>
+        <a href="#unity">Интеграция с Unity</a>
+        <a href="#troubleshooting">Ошибки и тонкости</a>
+        <a href="#links">Полезные ссылки</a>
+      </nav>
+    </aside>
+    <main>
+      <section class="card" id="quickstart">
+        <h2>Быстрый старт</h2>
+        <ol>
+          <li>Скачайте <code>fff.h</code> из репозитория (один файл).</li>
+          <li>В тесте подключите <code>fff.h</code> и определите <code>DEFINE_FFF_GLOBALS</code> в одном .c.</li>
+          <li>Опишите фейки через макросы <code>FAKE_VOID_FUNC</code>, <code>FAKE_VALUE_FUNC</code> и т.п.</li>
+          <li>Вызывайте <code>RESET_FAKE</code> для очистки между тестами.</li>
+        </ol>
+        <div class="grid cols-2">
+          <div>
+            <div class="codebar"><span class="title">test/test_sensor.c</span><button class="btn" data-copy="#code-test">копировать</button></div>
+            <pre><code id="code-test">#include "unity.h"
+#include "fff.h"
+DEFINE_FFF_GLOBALS;
+
+FAKE_VALUE_FUNC(int, adc_read_channel, uint8_t, int16_t*);
+
+extern int sensor_read_mv(uint8_t ch);
+
+void setUp(void){ RESET_FAKE(adc_read_channel); FFF_RESET_HISTORY(); }
+void tearDown(void){}
+
+void test_sensor_reads_mv_ok(void){
+    int16_t mv = 1234;
+    adc_read_channel_fake.return_val = 0;
+    adc_read_channel_fake.custom_fake =
+        ^(uint8_t ch, int16_t *out){ *out = mv; return 0; };
+
+    TEST_ASSERT_EQUAL_INT(1234, sensor_read_mv(2));
+    TEST_ASSERT_EQUAL(1, adc_read_channel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(2, adc_read_channel_fake.arg0_val);
+}
+</code></pre>
+          </div>
+          <div>
+            <div class="codebar"><span class="title">src/sensor.c</span><button class="btn" data-copy="#code-src">копировать</button></div>
+            <pre><code id="code-src">#include "drivers/adc.h"
+int sensor_read_mv(uint8_t ch){
+    int16_t mv = 0;
+    if(adc_read_channel(ch, &mv) != 0) return -1;
+    return (int)mv;
+}
+</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="api">
+        <h2>API макросов</h2>
+        <table>
+          <thead><tr><th>Макрос</th><th>Назначение</th></tr></thead>
+          <tbody>
+            <tr><td><code>FAKE_VOID_FUNC(name, args...)</code></td><td>Функция без возврата</td></tr>
+            <tr><td><code>FAKE_VALUE_FUNC(ret, name, args...)</code></td><td>Функция с возвратом</td></tr>
+            <tr><td><code>RESET_FAKE(name)</code></td><td>Сброс состояния фейка</td></tr>
+            <tr><td><code>FFF_RESET_HISTORY()</code></td><td>Сброс истории всех вызовов</td></tr>
+            <tr><td><code>custom_fake</code></td><td>Указатель на пользовательскую реализацию</td></tr>
+            <tr><td><code>return_val</code></td><td>Значение, возвращаемое по умолчанию</td></tr>
+            <tr><td><code>call_count</code></td><td>Счётчик вызовов</td></tr>
+            <tr><td><code>argN_val</code></td><td>Сохранённые значения аргументов</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card" id="examples">
+        <h2>Примеры использования</h2>
+        <div class="grid cols-2">
+          <div>
+            <h3>Фейк с возвратом фиксированного значения</h3>
+            <pre><code>FAKE_VALUE_FUNC(int, foo, int);
+foo_fake.return_val = 42;
+</code></pre>
+          </div>
+          <div>
+            <h3>Фейк с пользовательской логикой</h3>
+            <pre><code>foo_fake.custom_fake = ^(int x){ return x*2; };
+</code></pre>
+          </div>
+          <div>
+            <h3>Проверка аргументов</h3>
+            <pre><code>TEST_ASSERT_EQUAL(3, foo_fake.arg0_val);
+</code></pre>
+          </div>
+          <div>
+            <h3>Сброс между тестами</h3>
+            <pre><code>RESET_FAKE(foo);
+FFF_RESET_HISTORY();
+</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="patterns">
+        <h2>Типовые приёмы</h2>
+        <ul>
+          <li>Фейкайте зависимости напрямую в тестах, без генерации моков.</li>
+          <li>Используйте <code>custom_fake</code> для имитации сложных сценариев.</li>
+          <li>Сохраняйте и проверяйте аргументы через <code>argN_val</code>.</li>
+          <li>Комбинируйте с Unity для проверок.</li>
+          <li>Выносите общие фейки в отдельный хедер для переиспользования.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="unity">
+        <h2>Интеграция с Unity</h2>
+        <p>FFF не требует генерации кода, просто подключите его в тестах с Unity. Можно использовать Ceedling, добавив <code>vendor/fff.h</code> в проект и включив в тесты.</p>
+      </section>
+
+      <section class="card" id="troubleshooting">
+        <h2>Ошибки и тонкости</h2>
+        <ul>
+          <li><strong>DEFINE_FFF_GLOBALS</strong> должен быть только в одном .c файле.</li>
+          <li>Лямбда (<code>^</code>) синтаксис — это GCC extension (statement expression) или используйте обычные функции.</li>
+          <li>Поддержка до 10 аргументов по умолчанию (настраивается в fff.h).</li>
+          <li>FFF хранит только последние значения аргументов; для истории используйте массивы или custom_fake.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="links">
+        <h2>Полезные ссылки</h2>
+        <ul>
+          <li>FFF GitHub: <a href="https://github.com/meekrosoft/fff" target="_blank" rel="noopener">github.com/meekrosoft/fff</a></li>
+          <li>Документация: <a href="https://github.com/meekrosoft/fff/blob/master/README.md" target="_blank" rel="noopener">README.md</a></li>
+          <li>Unity: <a href="https://github.com/ThrowTheSwitch/Unity" target="_blank" rel="noopener">github.com/ThrowTheSwitch/Unity</a></li>
+        </ul>
+      </section>
+    </main>
+  </div>
+  <script>
+    document.querySelectorAll('[data-copy]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const target = document.querySelector(btn.getAttribute('data-copy'));
+        if(!target) return;
+        const text = target.textContent;
+        navigator.clipboard.writeText(text).then(()=>{
+          const old = btn.textContent; btn.textContent='скопировано';
+          setTimeout(()=>btn.textContent=old,1000);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
+

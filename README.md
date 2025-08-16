@@ -5,6 +5,7 @@
 ├── c-unity-cookbook.html   # краткий справочник по Unity(C) c навигацией, кодовыми примерами и ссылками
 ├── cmock-cookbook.html     # краткий справочник по CMock(C) с примерами автогенерации моков и интеграции с Ceedling
 ├── ceedling-cookbook.html  # краткий справочник по Ceedling(C) с описанием структуры, конфигурации, команд и плагинов 
-└── README.md             # этот файл
+├── fff-cookbook.html       # краткий справочник по FFF (Fake Function Framework) с API макросов и примерами
+└── README.md               # этот файл
 
 ```
