@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CMock (C) — мини‑cookbook</title>
+  <style>
+    :root{
+      --bg:#0f1320; --text:#e6e9ef; --muted:#9aa4b2; --card:#171a2b; --accent:#6ee7ff; --accent-2:#a78bfa;
+      --border:#232840; --kbd:#10131f; --green:#2dd4bf; --red:#f87171; --yellow:#facc15;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    a{color:var(--accent)} a:hover{color:#bff4ff}
+    .wrap{display:grid;grid-template-columns: 300px 1fr;min-height:100vh}
+    aside{border-right:1px solid var(--border);background:linear-gradient(180deg,#0e1221,#0a0d19)}
+    main{padding:24px 24px 80px}
+    .brand{padding:20px;border-bottom:1px solid var(--border)}
+    .brand h1{margin:0;font-size:18px;letter-spacing:.2px}
+    .brand small{color:var(--muted)}
+    .nav{padding:12px 6px 18px;position:sticky;top:0;max-height:calc(100vh - 70px);overflow:auto}
+    .nav a{display:block;padding:8px 12px;border-radius:10px;color:var(--text);text-decoration:none}
+    .nav a:hover{background:rgba(255,255,255,.04)}
+    .badge{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:12px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin:14px 0}
+    h2{margin:28px 0 8px}
+    h3{margin:22px 0 8px}
+    .grid{display:grid;gap:14px}
+    .grid.cols-2{grid-template-columns: 1fr 1fr}
+    @media (max-width: 920px){ .wrap{grid-template-columns:1fr} aside{position:sticky;top:0;z-index:10} }
+    pre{margin:10px 0;background:#0b0f1a;border:1px solid var(--border);border-radius:14px;overflow:auto}
+    pre code{display:block;padding:14px 16px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:13px}
+    .codebar{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:6px 10px;border:1px solid var(--border);border-bottom:none;border-radius:14px 14px 0 0;background:#0d1220}
+    .codebar .title{font:600 12px/1.2 ui-monospace,monospace;color:var(--muted)}
+    .btn{appearance:none;border:1px solid var(--border);background:#0f1527;color:var(--text);padding:6px 10px;border-radius:10px;cursor:pointer;font-size:12px}
+    .btn:hover{background:#141b31}
+    .tip{border-left:3px solid var(--green);padding:10px 12px;background:#0c1414;border-radius:10px}
+    .warn{border-left:3px solid var(--yellow);padding:10px 12px;background:#141208;border-radius:10px}
+    .err{border-left:3px solid var(--red);padding:10px 12px;background:#1a0b0b;border-radius:10px}
+    table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;font-size:14px}
+    th{background:#12162a;text-align:left}
+    tr:last-child td{border-bottom:none}
+    .hl{color:var(--accent-2)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside>
+      <div class="brand">
+        <h1>CMock (C) — мини‑cookbook</h1>
+        <small>Автогенерация моков из .h и удобные ожидания вызовов. Идеально с Unity/Ceedling.</small>
+      </div>
+      <nav class="nav" id="toc">
+        <a href="#quickstart">Быстрый старт</a>
+        <a href="#anatomy">Анатомия моков</a>
+        <a href="#patterns">Типовые приёмы</a>
+        <a href="#ceedling">Интеграция с Ceedling</a>
+        <a href="#standalone">Стэндэлон генерация (без Ceedling)</a>
+        <a href="#troubleshooting">Ошибки и тонкости</a>
+        <a href="#links">Полезные ссылки</a>
+      </nav>
+    </aside>
+    <main>
+
+      <section class="card" id="quickstart">
+        <h2>Быстрый старт</h2>
+        <ol>
+          <li>Определите интерфейс в заголовке (например, <code>drivers/adc.h</code>).</li>
+          <li>Сгенерируйте мок: <code>mock_adc.h/.c</code>.</li>
+          <li>В тестах подключите <code>mock_adc.h</code>, настройте ожидания (<span class="hl">Expect*</span>) и верните значения.</li>
+        </ol>
+        <div class="grid cols-2">
+          <div>
+            <div class="codebar"><span class="title">drivers/adc.h</span><button class="btn" data-copy="#code-h-adc">копировать</button></div>
+            <pre><code id="code-h-adc">#pragma once
+#include &lt;stdint.h&gt;
+
+void   adc_init(void);
+int32_t adc_read_channel(uint8_t ch, int16_t *out_mv);
+</code></pre>
+          </div>
+          <div>
+            <div class="codebar"><span class="title">Использование в коде</span><button class="btn" data-copy="#code-src-user">копировать</button></div>
+            <pre><code id="code-src-user">#include "drivers/adc.h"
+int sensor_read_mv(uint8_t ch){
+    int16_t mv = 0;
+    if(adc_read_channel(ch, &mv) != 0) return -1;
+    return (int)mv;
+}
+</code></pre>
+          </div>
+        </div>
+        <div>
+          <div class="codebar"><span class="title">Тест с моками: test/test_sensor.c</span><button class="btn" data-copy="#code-test-sensor">копировать</button></div>
+          <pre><code id="code-test-sensor">#include "unity.h"
+#include "mock_adc.h"     // &lt;— генерируется CMock
+
+extern int sensor_read_mv(uint8_t ch);
+
+void setUp(void){}
+void tearDown(void){}
+
+void test_sensor_reads_mv_ok(void){
+    int16_t mv = 1234;
+    // Ожидаем один вызов adc_read_channel с ch=2, out_mv=&any, вернём 0 и пробросим значение через указатель
+    adc_read_channel_ExpectAnyArgsAndReturn(0);
+    adc_read_channel_ReturnThruPtr_out_mv(&mv);
+
+    TEST_ASSERT_EQUAL_INT(1234, sensor_read_mv(2));
+}
+
+void test_sensor_handles_error(void){
+    adc_read_channel_ExpectAnyArgsAndReturn(-5);
+    TEST_ASSERT_EQUAL_INT(-1, sensor_read_mv(0));
+}
+</code></pre>
+        </div>
+        <div class="tip">Имена API моков формируются по шаблону: <code>&lt;func&gt;_Expect...</code>, <code>&lt;func&gt;_Return...</code>, <code>&lt;func&gt;_Ignore...</code>, <code>&lt;func&gt;_AddCallback</code> и пр.</div>
+      </section>
+
+      <section class="card" id="anatomy">
+        <h2>Анатомия моков CMock</h2>
+        <table>
+          <thead><tr><th>Категория</th><th>Примеры вызовов</th><th>Назначение</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Ожидания</td>
+              <td><code>foo_Expect(...)</code>, <code>foo_ExpectAndReturn(..., ret)</code>, <code>foo_ExpectAnyArgs()</code></td>
+              <td>Задают, что функция будет вызвана (сколько раз и с какими аргументами).</td>
+            </tr>
+            <tr>
+              <td>Игнорирование</td>
+              <td><code>foo_Ignore()</code>, <code>foo_IgnoreArg_bar()</code>, <code>foo_IgnoreArgAll()</code></td>
+              <td>Разрешают вызовы без проверок на конкретные аргументы.</td>
+            </tr>
+            <tr>
+              <td>Возвраты</td>
+              <td><code>foo_ReturnThruPtr_out(p)</code>, <code>foo_ReturnArrayThruPtr_out(arr, n)</code>, <code>foo_ReturnMemThruPtr_out(p, len)</code></td>
+              <td>Записывают данные в указанные буферы, имитируя выводные параметры.</td>
+            </tr>
+            <tr>
+              <td>Последовательности</td>
+              <td><code>foo_ExpectAndReturn(..., r1); foo_ExpectAndReturn(..., r2);</code></td>
+              <td>Несколько ожиданий одного API — проверяется порядок вызовов.</td>
+            </tr>
+            <tr>
+              <td>Коллбеки</td>
+              <td><code>foo_AddCallback(cb)</code>, <code>foo_Stub(cb)</code></td>
+              <td>Динамическая логика возвратов и проверок при каждом вызове.</td>
+            </tr>
+            <tr>
+              <td>Проверки аргументов</td>
+              <td><code>foo_ExpectWithArray(&a, n)</code>, <code>foo_ExpectAnyArgs()</code>, <code>foo_IgnoreArg_x()</code></td>
+              <td>Сравнение массивов/памяти и гибкие проверки аргументов.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card" id="patterns">
+        <h2>Типовые приёмы</h2>
+        <div class="grid cols-2">
+          <div>
+            <h3>1) Мок только части API</h3>
+            <div class="codebar"><span class="title">project.yml (Ceedling)</span><button class="btn" data-copy="#code-yml-partial">копировать</button></div>
+            <pre><code id="code-yml-partial">:cmock:
+  :mock_prefix: mock_
+  :when_ptr: :compare_data
+  :plugins:
+    - :ignore
+    - :return_thru_ptr
+  :exclude:
+    - static_helper_*   # не мокать эти функции
+</code></pre>
+            <p class="badge">Можно мокать конкретные хедеры через <code>TEST_...</code> секции Ceedling: <code>:test: :mock: [drivers/adc.h]</code>.</p>
+          </div>
+          <div>
+            <h3>2) Последовательность вызовов</h3>
+            <pre><code>read_foo_ExpectAndReturn(1);
+read_foo_ExpectAndReturn(2);
+read_foo_ExpectAndReturn(3);   // порядок обязателен
+</code></pre>
+          </div>
+          <div>
+            <h3>3) Заполнение выходных указателей</h3>
+            <pre><code>uint8_t bytes[2] = {0xAA, 0x55};
+spi_transfer_ExpectAnyArgsAndReturn(0);
+spi_transfer_ReturnArrayThruPtr_rx(bytes, 2); // имитируем приём
+</code></pre>
+          </div>
+          <div>
+            <h3>4) Коллбек для динамики</h3>
+            <pre><code>static int cb_adc(int num_calls, uint8_t ch, int16_t *out_mv){
+  (void)ch; *out_mv = (int16_t)(1000 + 10 * num_calls); return 0;
+}
+adc_read_channel_StubWithCallback(cb_adc);
+</code></pre>
+          </div>
+          <div>
+            <h3>5) Игнор конкретного аргумента</h3>
+            <pre><code>i2c_write_ExpectAndReturn(0x50, 0, NULL, 3, 0);
+i2c_write_IgnoreArg_reg();      // регистр неважен
+</code></pre>
+          </div>
+          <div>
+            <h3>6) Сравнение массивов/памяти</h3>
+            <pre><code>uint8_t exp[4] = {1,2,3,4};
+i2c_write_ExpectWithArray(0x50, 0x10, exp, 4, 4); // адрес, рег, *buf, len, depth
+</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="ceedling">
+        <h2>Интеграция с Ceedling</h2>
+        <ol>
+          <li>Установите Ruby &amp; Ceedling: <code>gem install ceedling</code> или используйте бандлер.</li>
+          <li><code>ceedling new proj</code> → положите ваши <code>src/</code> и <code>test/</code>.</li>
+          <li>В <code>project.yml</code> подключите CMock и укажите хедеры для моков.</li>
+        </ol>
+        <div class="grid cols-2">
+          <div>
+            <div class="codebar"><span class="title">project.yml (минимум)</span><button class="btn" data-copy="#code-yml">копировать</button></div>
+            <pre><code id="code-yml">:project:
+  :use_exceptions: false
+  :test_file_prefix: test_
+
+:cmock:
+  :mock_prefix: mock_
+  :plugins:
+    - :ignore
+    - :return_thru_ptr
+
+:test:
+  :includes:
+    - src
+  :mock:
+    - drivers/adc.h
+</code></pre>
+          </div>
+          <div>
+            <h3>Запуск</h3>
+            <pre><code>ceedling test:all         # собрать и запустить тесты
+ceedling test:test_sensor # конкретный файл
+ceedling clobber          # очистить артефакты
+</code></pre>
+            <p class="tip">Ceedling сам генерирует <code>mock_*.c/.h</code> в <code>build/</code> и линкует их с тестами.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="standalone">
+        <h2>Стэндэлон генерация (без Ceedling)</h2>
+        <p>Можно использовать CMock напрямую как Ruby‑гем:</p>
+        <pre><code># Установка
+# gem install cmock
+
+# Пример скрипта (Rakefile или ruby-скрипт)
+require 'cmock'
+cmock = CMock.new(:mock_prefix => 'mock_', :plugins => [:ignore, :return_thru_ptr])
+cmock.setup_mocks(["drivers/adc.h"]) # сгенерит mock_adc.[ch] в ./mocks
+</code></pre>
+        <p>Далее соберите вместе: <em>ваши тесты + Unity + mock_*.c</em>. Включите путь к сгенерированным мокам (<code>-I mocks</code>).</p>
+        <div class="warn">Без Ceedling вам нужно самостоятельно поддерживать инклюды, пути и флаги компиляции.</div>
+      </section>
+
+      <section class="card" id="troubleshooting">
+        <h2>Ошибки и тонкости</h2>
+        <ul>
+          <li><strong>static‑функции не мокаются</strong>: мокать можно только символы, видимые из заголовков (<code>extern</code> API). Внутренние <code>static</code> вынесите в отдельный модуль и тестируйте через публичный интерфейс.</li>
+          <li><strong>inline/макросы</strong>: если функция объявлена как <code>static inline</code> в .h — CMock не сможет перехватить вызов. Решение: предоставить лишь прототип в .h и реализацию в .c.</li>
+          <li><strong>varargs</strong>: поддержка ограничена. Часто проще заворачивать в адаптер с фиксированным интерфейсом и мокать его.</li>
+          <li><strong>Строгий порядок</strong>: по умолчанию порядок вызовов важен. Если порядок не принципиален — используйте <code>_IgnoreArg_*</code>/<code>_ExpectAnyArgs()</code> и единое ожидание.</li>
+          <li><strong>Несовпадение сигнатур</strong>: генерация моков читает прототипы из .h; следите, чтобы они совпадали с использованием (qualifiers <code>const</code>/<code>volatile</code>, typedef'ы).</li>
+          <li><strong>Сложные структуры</strong>: применяйте <code>_ExpectWithArray</code> или возврат памяти через <code>_ReturnMemThruPtr_*</code>.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="links">
+        <h2>Полезные ссылки</h2>
+        <ul>
+          <li>CMock на GitHub: <a href="https://github.com/ThrowTheSwitch/CMock" target="_blank" rel="noopener">github.com/ThrowTheSwitch/CMock</a></li>
+          <li>Документация Throw The Switch: <a href="https://www.throwtheswitch.org/cmock" target="_blank" rel="noopener">throwtheswitch.org/cmock</a></li>
+          <li>Ceedling (оркестратор): <a href="https://github.com/ThrowTheSwitch/Ceedling" target="_blank" rel="noopener">github.com/ThrowTheSwitch/Ceedling</a></li>
+          <li>Пример конфигурации CMock: <a href="https://github.com/ThrowTheSwitch/CMock/tree/master/docs" target="_blank" rel="noopener">docs/ в репозитории</a></li>
+          <li>Unity (фреймворк ассертов): <a href="https://github.com/ThrowTheSwitch/Unity" target="_blank" rel="noopener">github.com/ThrowTheSwitch/Unity</a></li>
+        </ul>
+        <p class="badge">Рекомендуется пара: Unity + CMock + Ceedling (JUnit‑отчёты, покрытие, удобные цели make/rake).</p>
+      </section>
+
+    </main>
+  </div>
+  <script>
+    document.querySelectorAll('[data-copy]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const target = document.querySelector(btn.getAttribute('data-copy'));
+        if(!target) return;
+        const text = target.textContent;
+        navigator.clipboard.writeText(text).then(()=>{
+          const old = btn.textContent; btn.textContent='скопировано';
+          setTimeout(()=>btn.textContent=old,1000);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
+

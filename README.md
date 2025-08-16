@@ -3,6 +3,7 @@
 ├── make-manual.html      # краткий справочник по синтаксису GNU Make
 ├── markdown-syntax.html  # краткий справочник по синтаксису Markdown
 ├── c-unity-cookbook.html # краткий справочник по Unity(C) c навигацией, кодовыми примерами и ссылками
+├── cmock-cookbook.html   # краткий справочник по CMock(C) с примерами автогенерации моков и интеграции с Ceedling
 └── README.md             # этот файл
 
 ```
