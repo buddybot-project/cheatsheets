@@ -1,12 +1,14 @@
-```bash
-.
-├── make-manual.html          # краткий справочник по синтаксису GNU Make
-├── markdown-syntax.html      # краткий справочник по синтаксису Markdown
-├── c-unity-cookbook.html     # краткий справочник по Unity(C) c навигацией, кодовыми примерами и ссылками
-├── cmock-cookbook.html       # краткий справочник по CMock(C) с примерами автогенерации моков и интеграции с Ceedling
-├── ceedling-cookbook.html    # краткий справочник по Ceedling(C) с описанием структуры, конфигурации, команд и плагинов 
-├── fff-cookbook.html         # краткий справочник по FFF (Fake Function Framework) с API макросов и примерами
-├── gcov-gcovr-cookbook.html  # краткий справочник по gcov и gcovr с примерами использования, HTML/JUnit отчетами и интеграцией с Ceedling
-├── doxygen-cookbook.html     # краткий справочник по Doxygen синтаксису и автоматической генерации документации из комментариев
-└── README.md                 # этот файл
-```
+# 📚 Справочная документация  
+
+> Краткие справочники по инструментам разработки на C:  
+
+.  
+├── 📄 [make-manual](https://buddybot-project.github.io/cheatsheets/make-manual.html)          # Справочник по синтаксису GNU Make  
+├── 📄 [markdown-syntax](https://buddybot-project.github.io/cheatsheets/markdown-syntax.html)  # Справочник по синтаксису Markdown  
+├── 📄 [c-unity-cookbook](https://buddybot-project.github.io/cheatsheets/c-unity-cookbook.html) # Unity (C) с примерами и навигацией  
+├── 📄 [cmock-cookbook](https://buddybot-project.github.io/cheatsheets/cmock-cookbook.html)    # CMock: автогенерация моков + интеграция с Ceedling  
+├── 📄 [ceedling-cookbook](https://buddybot-project.github.io/cheatsheets/ceedling-cookbook.html) # Ceedling: структура, конфиги, плагины  
+├── 📄 [fff-cookbook](https://buddybot-project.github.io/cheatsheets/fff-cookbook.html)        # Fake Function Framework (API макросов)  
+├── 📄 [gcov-gcovr-cookbook](https://buddybot-project.github.io/cheatsheets/gcov-gcovr-cookbook.html) # gcov/gcovr + HTML/JUnit отчёты  
+└── 📄 [doxygen-cookbook](https://buddybot-project.github.io/cheatsheets/doxygen-cookbook.html) # Doxygen: генерация документации  
+
